@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="keras.js"></script>
+  <script src="three.min.js"></script>
+  <script src="bundle.js"></script>
+  <script src="imagenet.js"></script>
+  <style>
+    #input-canvas {
+    float:left;
+    }
+
+    #predictions {
+    float:left;
+    margin-left: 15px;
+    }
+  </style>
+</head>
+<body>
+  <select id="image-urls"></select>
+  <canvas id="input-canvas" width="299" height="299"></canvas>
+  <div id="predictions"></div>
+  <script src="image_urls.js"></script>
+  <script src="vis.js"></script>
+  <script src="index.js"></script>  
+</body>
