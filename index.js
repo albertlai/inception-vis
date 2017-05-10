@@ -3,9 +3,9 @@ var up = 38;
 var right = 39;
 var down = 40;
 
-data_url = "http://i.imgur.com/CzXTtJV.jpg";
+//data_url = "http://i.imgur.com/CzXTtJV.jpg";
 //data_url = "http://i.imgur.com/OB0y6MR.jpg";
-
+data_url = "https://farm4.staticflickr.com/3075/3168662394_7d7103de7d_z_d.jpg";
 // in browser, URLs can be relative or absolute
 base_url = "Inception/";
 model_url = base_url + "inception_v3.json";
@@ -66,7 +66,7 @@ function predict() {
 select.onchange = function() {
     let selected = select.options[select.selectedIndex];
     console.log(selected.text);
-//    loadImageToCanvas(selected.value, predict);
+    loadImageToCanvas(selected.value, function() { console.log("hi"); });
 };
 
 document.onkeydown = checkKey;

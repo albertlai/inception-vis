@@ -1,7 +1,7 @@
 
 var scene, camera, renderer;
 
-var pointSize = 1;
+var pointSize = 1.0;
 
 var theta = -Math.PI*9/16;
 var distance;
@@ -44,39 +44,98 @@ function generateGeometryForImage(tensor, z) {
     return pointcloud;
 }
 
+function generateGeometryForDense(tensor, z0, depth, color) {
+    var geometry = new THREE.BufferGeometry();
+    var shape = tensor.shape;
+    var x,y,z = 0;
+    var n = shape[0];
+    var m = shape[1];
+    var c = shape[2];
+    var num_vertices = n*m*c;
+    var alphas = new Float32Array( num_vertices * 1 );
+    var vertices = new Float32Array( num_vertices * 3 );
+    var colors = new Float32Array( num_vertices * 3 );
+    var w = Math.ceil(Math.sqrt(num_vertices/depth));
+    console.log(w);
+    console.log(shape);
+    var space = 8;
+    var size = 2.0;
+    for (i=0; i<num_vertices; i++) {
+        x = (i % w - w/2) * space;
+        y = (Math.floor(i / w) % w -w/2) * space;
+        z = z0 + space * (depth - Math.floor(Math.floor(i/w)/w));
+        vertices[i*3] = x;
+        vertices[i*3+1] = y;
+        vertices[i*3+2] = z;
+        let intensity = tensor.get(0,0,i);
+        if (intensity < .1) {
+//            intensity = 0;
+        }
+        alphas[i] = intensity*intensity/4;        
+        colors[i*3] = color.r;
+        colors[i*3+1] = color.g;
+        colors[i*3+2] = color.b;
+    }
+    geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
+    geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
+    geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
+    geometry.computeBoundingBox();
+    var shaderMaterial = new THREE.ShaderMaterial( {
+        uniforms:       { size: { value: size }},
+        vertexShader:   document.getElementById( 'vertexshader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+        transparent:    true
+    });
+    var pointcloud = new THREE.Points( geometry, shaderMaterial );    
+    return pointcloud;
+}
+
 function generateGeometryForPredictions(tensor, z) {
-    var geometry = new THREE.Geometry();
+    var geometry = new THREE.BufferGeometry();
     var N = tensor.shape[0];
     var w = Math.ceil(Math.sqrt(N));
+    var num_vertices = w*w;
     var color = new THREE.Color(1,1,0);
-    var colors = [];
+    var alphas = new Float32Array(num_vertices * 1 );
+    var vertices = new Float32Array(num_vertices * 3 );
+    var colors = new Float32Array(num_vertices * 3 );
     var max = 0;
     for (i=0; i<N; i++) {
         if (tensor.get(i) > max) {
             max = tensor.get(i);
         }
     }
-    console.log(max);
-    for (i=0; i<N; i++) {
+    for (i=0; i<num_vertices; i++) {
         let x = (i % w - w/2) * 8;
         let y = (Math.floor(i / w)-w/2) * 8;
-
-        geometry.vertices.push(
-            new THREE.Vector3(x, y, z)
-        );
-        let intensity = 0.1 + 0.9*tensor.get(i)/max;        
-        let col = new THREE.Color(intensity, intensity, 0);
-        colors[i] = col;
-
+        vertices[i*3] = x;
+        vertices[i*3+1] = y;
+        vertices[i*3+2] = z;
+        var intensity;
+        if (i < N) {
+            intensity = 0.3 + 0.7*tensor.get(i)/max;
+        } else {
+            intensity = 0.3;
+        }
+        alphas[i] = intensity;        
+        colors[i*3] = color.r;
+        colors[i*3+1] = color.g;
+        colors[i*3+2] = color.b;
     }
-    geometry.colors = colors;
+    geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
+    geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
+    geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
     geometry.computeBoundingBox();
-    var material = new THREE.PointsMaterial( { size: 8,
-                                               vertexColors: THREE.VertexColors } );
-    var pointcloud = new THREE.Points( geometry, material );    
+    var shaderMaterial = new THREE.ShaderMaterial( {
+        uniforms:       { size: { value: 5.0 }},
+        vertexShader:   document.getElementById( 'vertexshader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+        transparent:    true
+    });
+    var pointcloud = new THREE.Points( geometry, shaderMaterial );    
     return pointcloud;
-
 }
+
 var space = 3;
 function generateGeometryForTensor(tensor, z0, blocks, color_start) {
     var geometry = new THREE.BufferGeometry();
@@ -94,10 +153,8 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
         x_offset = n * blocks[1] * space/2;
         y_offset = m * blocks[1] * space/2;
     }
-    console.log(shape);
-    console.log(blocks);
-    console.log(x_offset);
-    console.log(y_offset);
+//    console.log(shape);
+//    console.log(blocks);
     var alphas = new Float32Array( numVertices * 1 );
     var vertices = new Float32Array( numVertices * 3 );
     var colors = new Float32Array( numVertices * 3 );
@@ -112,7 +169,7 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
         for (j=0; j<m; j++) {
             y = j * space;
             if (shape.length > 2) {
-                for (k=0; k<c; k++) {
+                for (k=c-1; k>0; k--) {
                     z = z0 + k * space;
                     var intensity = 0;
                     let value = tensor.get(i,j,k);
@@ -121,16 +178,12 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
                         over_ones++;
                     } else if (value > 0.1 && value < 2) {
                         intensity = value*value*value*value/16;
-                        if (intensity < 0.1) {
-//                            intensity = 0;
-                        }
                         regs++;
                         average = value + average;
                     } else {
                         nulls++;
                         intensity = 0;
                     }
-//                    if (intensity > 0) {
                     let block = Math.floor(k / newC);
                     let newX = x;
                     let newY = y;
@@ -144,16 +197,11 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
                     }
                     newX = newX - x_offset;
                     newY = newY - y_offset;
-                    //                        geometry.vertices.push(
-                    //                            new THREE.Vector3(newX, newY, newZ)
-                    //                        );
                     
                     colors[total_count*3] = color_start.r;
                     colors[total_count*3+1] = color_start.g;
                     colors[total_count*3+2] = color_start.b;
                     
-                    //                        total_count++;
-                    //                    }
                     alphas[total_count] = intensity;
                     vertices[total_count*3] = newX;
                     vertices[total_count*3+1] = newY;
@@ -170,16 +218,10 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
     geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
     geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
     geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
-    geometry.colors = colors;
     geometry.computeBoundingBox();    
-    var material = new THREE.PointsMaterial( { size: pointSize,
-                                               vertexColors: THREE.VertexColors } );
     // point cloud material
-    var uniforms = {
-
-    };
     var shaderMaterial = new THREE.ShaderMaterial( {
-        uniforms:       uniforms,
+        uniforms:       { size: { value: pointSize } },
         vertexShader:   document.getElementById( 'vertexshader' ).textContent,
         fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
         transparent:    true
@@ -205,10 +247,6 @@ function initVis(model) {
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 5000 );
-//    camera.position.x = 100;
-//    camera.position.y = -300;
-//    camera.position.z = -200;
-//    camera.rotation.x = 2.8;
     camera.rotation.z = Math.PI/2;
 
     key_iter = model.modelLayersMap.keys();
@@ -221,18 +259,13 @@ function initVis(model) {
         let shape = tensor.shape;
         if (key.includes("input")) {
 //            scene.add(generateGeometryForImage(tensor, 1));
-//            z = 10;
+            //            z = 10;
+           // layers++;
         } else if (shape && key.includes("pooling") && key != "averagepooling2d_1") {
             console.log(key);
-            //rb
-            //rg
-            //gb
             if (color.r < 1 && color.b > 0) {
                 color.b = color.b - .1;
                 color.r = color.r + .1;
-//            } else {
-//                color.g = color.g - .2;
-//                color.b = color.b + .2;                                
             }
             let c = shape[2];
             var blocks = [1, 1];
@@ -242,17 +275,27 @@ function initVis(model) {
             let points = generateGeometryForTensor(tensor, z, blocks, color);
             if (shape.length > 2) {
                 var newC = c / (blocks[0] * blocks[1]);
-                z = z + newC * space * 3 / 2;
+                z = z + newC * space + 64;
             }
             scene.add(points);
             layers++;
+        } else if (key.includes("avg_pool")) {
+            let depth = 8;
+            z = z + 32;
+            scene.add(generateGeometryForDense(tensor, z, depth, color));
+            z = z + depth * space + 128;
+            layers++;
         } else if (key.includes("prediction")) {
             scene.add(generateGeometryForPredictions(tensor, z));
+            layers++;
         }
     }
-    // Set up the center to be the middle of the Z axis
-    center.z = z / 2;
-    distance = z / 2 + 250;
+    for (i=0; i < scene.children.length; i++) {
+        scene.children[i].renderOrder = scene.children.length - i;
+    }
+    // Set up the center to rotate camera around
+    center.z = z  + 100;
+    distance = center.z + 250;
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
     
