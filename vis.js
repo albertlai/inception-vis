@@ -1,7 +1,7 @@
 
 var scene, camera, renderer;
 
-var pointSize = 2;
+var pointSize = 1;
 
 var theta = -Math.PI*9/16;
 var distance;
@@ -79,13 +79,14 @@ function generateGeometryForPredictions(tensor, z) {
 }
 var space = 3;
 function generateGeometryForTensor(tensor, z0, blocks, color_start) {
-    var geometry = new THREE.Geometry();
+    var geometry = new THREE.BufferGeometry();
     var numPoints = 1;
     var shape = tensor.shape;
     var x,y,z = 0;
     var n = shape[0];
     var m = shape[1];
     var c = shape[2];
+    var numVertices = n*m*c;
     var newC = c / (blocks[0] * blocks[1]);
     var x_offset = n * space/2;
     var y_offset = m * space/2;    
@@ -97,8 +98,10 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
     console.log(blocks);
     console.log(x_offset);
     console.log(y_offset);
-    colors = [];
-    color = color_start;
+    var alphas = new Float32Array( numVertices * 1 );
+    var vertices = new Float32Array( numVertices * 3 );
+    var colors = new Float32Array( numVertices * 3 );
+
     var total_count = 0;
     var nulls = 0;
     var over_ones = 0;
@@ -117,9 +120,9 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
                         intensity = 1;
                         over_ones++;
                     } else if (value > 0.1 && value < 2) {
-                        intensity = value*value*value/8;
+                        intensity = value*value*value*value/16;
                         if (intensity < 0.1) {
-                            intensity = 0;
+//                            intensity = 0;
                         }
                         regs++;
                         average = value + average;
@@ -127,27 +130,35 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
                         nulls++;
                         intensity = 0;
                     }
-                    if (intensity > 0) {
-                        let block = Math.floor(k / newC);
-                        let newX = x;
-                        let newY = y;
-                        let newZ = z;
-                        if (c > newC) {
-                            let blockX = Math.floor(block / blocks[1]);  
-                            let blockY = block % blocks[1];
-                            newX = x * blocks[1] + blockX * space* blocks[1] / blocks[0];
-                            newY = y * blocks[1] + blockY * space;
-                            newZ = z0 + (k % newC) * space;
-                        }
-                        newX = newX - x_offset;
-                        newY = newY - y_offset;
-                        geometry.vertices.push(
-                            new THREE.Vector3(newX, newY, newZ)
-                        );
-                        
-                        colors[total_count] = color.clone().multiplyScalar(intensity);
-                        total_count++;
+//                    if (intensity > 0) {
+                    let block = Math.floor(k / newC);
+                    let newX = x;
+                    let newY = y;
+                    let newZ = z;
+                    if (c > newC) {
+                        let blockX = Math.floor(block / blocks[1]);  
+                        let blockY = block % blocks[1];
+                        newX = x * blocks[1] + blockX * space* blocks[1] / blocks[0];
+                        newY = y * blocks[1] + blockY * space;
+                        newZ = z0 + (k % newC) * space;
                     }
+                    newX = newX - x_offset;
+                    newY = newY - y_offset;
+                    //                        geometry.vertices.push(
+                    //                            new THREE.Vector3(newX, newY, newZ)
+                    //                        );
+                    
+                    colors[total_count*3] = color_start.r;
+                    colors[total_count*3+1] = color_start.g;
+                    colors[total_count*3+2] = color_start.b;
+                    
+                    //                        total_count++;
+                    //                    }
+                    alphas[total_count] = intensity;
+                    vertices[total_count*3] = newX;
+                    vertices[total_count*3+1] = newY;
+                    vertices[total_count*3+2] = newZ;
+                    total_count++;
                 }
             } else {
                 geometry.vertices.push(
@@ -156,16 +167,24 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
             }
         }
     }
-//    console.log(n);
-//    console.log(nulls);
-//    console.log(regs);
-//    console.log(over_ones);
-//    console.log(average / regs);
+    geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
+    geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
+    geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
     geometry.colors = colors;
-    geometry.computeBoundingBox();
+    geometry.computeBoundingBox();    
     var material = new THREE.PointsMaterial( { size: pointSize,
                                                vertexColors: THREE.VertexColors } );
-    var pointcloud = new THREE.Points( geometry, material );    
+    // point cloud material
+    var uniforms = {
+
+    };
+    var shaderMaterial = new THREE.ShaderMaterial( {
+        uniforms:       uniforms,
+        vertexShader:   document.getElementById( 'vertexshader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+        transparent:    true
+    });
+    var pointcloud = new THREE.Points( geometry, shaderMaterial );    
     return pointcloud;
 }
 

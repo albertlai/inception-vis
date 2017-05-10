@@ -5,6 +5,35 @@
   <script src="three.min.js"></script>
   <script src="bundle.js"></script>
   <script src="imagenet.js"></script>
+
+
+  <script type="x-shader/x-vertex" id="vertexshader">
+    attribute float alpha;
+    attribute vec3 color;
+    varying float vAlpha;
+    varying vec3 vColor;    
+    void main() {
+      vAlpha = alpha;
+      vColor = color;
+      vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+//    gl_PointSize = 1.0;
+      gl_PointSize = 1.0 * (500.0 / length(mvPosition.xyz));
+      gl_Position = projectionMatrix * mvPosition;
+    }
+  </script>
+
+  <script type="x-shader/x-fragment" id="fragmentshader">
+    varying vec3 vColor;
+    varying float vAlpha;
+    void main() {
+      if (vAlpha > 0.0) {
+        gl_FragColor = vec4( vColor, vAlpha );
+      } else {
+        discard;
+      }
+    }
+  </script>
+
   <style>
     #input-canvas {
     float:left;
