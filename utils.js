@@ -5,7 +5,7 @@ var reverse = require('lodash/reverse');
 var sortBy = require('lodash/sortBy');
 var take = require('lodash/take');
 
-loadImageToCanvas = function(url, callback) {
+loadImageToCanvas = function(url, callback, callback_arg) {
     this.imageLoading = true;
     img = new Image();//document.createElement("img");    
     img.crop=true;
@@ -24,8 +24,8 @@ loadImageToCanvas = function(url, callback) {
             this.imageLoadingError = false;
             this.imageLoading = false;
             this.modelRunning = true;
-            // model predict
-            callback();
+            // model predict            
+            setTimeout(function() {callback(callback_arg);}, 500);
         }
     };
     img.src = url;

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <head>
   <meta charset="utf-8">
+  <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">  
+  <link rel="stylesheet" type="text/css" href="spinner.css">
   <script src="keras.js"></script>
   <script src="three.min.js"></script>
   <script src="bundle.js"></script>
   <script src="imagenet.js"></script>
-
 
   <script type="x-shader/x-vertex" id="vertexshader">
     attribute float alpha;
@@ -36,21 +37,51 @@
   </script>
 
   <style>
-    #input-canvas {
-    float:left;
+    body {
+    font-family: 'Lato', sans-serif;
+    margin: 0px 0px;
     }
 
-    #predictions {
-    float:left;
-    margin-left: 15px;
+    #content {
+    margin: 140px; 100px;
     }
+    
+    #input-canvas {
+      background: #eeeeee;
+      float:left;
+    }
+    
+    #container {
+      float:left;
+      margin-left: 15px;    
+      width:300px;
+      height:300px;
+    }
+
+
+    #predictions {
+      display: none;
+    }
+
+    
   </style>
 </head>
 <body>
-  <select id="image-urls"></select>
+  <div id="content">
+  <h2>INSIDE GOOGLE'S BRAIN</h2>
+  SELECT AN IMAGE: &nbsp;<select id="image-urls"></select>&nbsp; OR PASTE AN IMAGE URL <input id="image-input"></input> <button type="button" id="button">GO!</button><br/>
+  <br/>
   <canvas id="input-canvas" width="299" height="299"></canvas>
+  <div id="container">
   <div id="predictions"></div>
+  <div id="spinner">
+    <svg class="circular" viewBox="25 25 50 50">
+      <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
+    </svg>
+  </div>
+  </div>  
+  </div>
   <script src="image_urls.js"></script>
   <script src="vis.js"></script>
-  <script src="index.js"></script>  
+  <script src="index.js"></script>
 </body>
