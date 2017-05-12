@@ -53,7 +53,8 @@
     
     #container {
       float:left;
-      margin-left: 15px;    
+      margin-left: 15px;
+      margin-bottom: 20px;
       width:300px;
       height:300px;
     }
@@ -72,18 +73,19 @@
 </head>
 <body>
   <div id="content">
-  <h2>INSIDE GOOGLE'S BRAIN</h2>
+    <h2>INSIDE GOOGLE'S BRAIN</h2>
+    <p>Explore how neural networks see the world. Here you can watch which 'neurons' get excited when Google's Inecption V3 neural network looks at an image. Use the arrow keys on your keyboard to navigate.</p>
   SELECT AN IMAGE: &nbsp;<select id="image-urls"></select>&nbsp; OR PASTE AN IMAGE URL <input id="image-input"></input> <button type="button" id="button">GO!</button><br/>
   <br/>
   <canvas id="input-canvas" width="299" height="299"></canvas>
   <div id="container">
-  <div id="predictions"></div>
-  <div id="spinner">
-    <svg class="circular" viewBox="25 25 50 50">
-      <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
-    </svg>
-  </div>
-  </div>  
+    <div id="predictions"></div>
+    <div id="spinner">
+      <svg class="circular" viewBox="25 25 50 50">
+        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
+      </svg>
+    </div>
+    </div>  
   </div>
   <script src="image_urls.js"></script>
   <script src="vis.js"></script>

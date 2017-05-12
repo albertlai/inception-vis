@@ -197,8 +197,8 @@ function adjustIntensity(value) {
         return 0;
     }
 }
-var space = 3;
-function generateGeometryForTensor(tensor, z0, blocks, color_start) {
+
+function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     var geometry = new THREE.BufferGeometry();
     var numPoints = 1;
     var shape = tensor.shape;
@@ -218,16 +218,17 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start) {
     var vertices = new Float32Array( numVertices * 3 );
     var colors = new Float32Array( numVertices * 3 );
     var color = color_start.clone();
-    nextColor(color, 0.1);    
+    nextColor(color, colorDelta);    
     var total_count = 0;
-    
+    console.log(color);
     for (let k=c-1; k>0; k--) {
-        z = z0 + (k+Math.random()-0.5) * space;
-        nextColor(color, -0.1/k);
+
+        nextColor(color, -colorDelta/k);
         for (let i=0; i<n; i++) {
             x = i * space;
             for (let j=0; j<m; j++) {
                 y = (m-j) * space;
+                z = z0 + (k+Math.random()-0.5) * space;
                 let value = tensor.get(i,j,k);
                 let intensity = adjustIntensity(value);
                 let block = Math.floor(k / newC);
@@ -305,9 +306,9 @@ function getNewZ(z, newZ) {
 }
 
 function nextColor(color, delta) {
-    if (color.r < 1 && color.b > 0) {
-        color.b = color.b - delta;
-        color.r = color.r + delta;
+    if (color.g < 1 && color.r > 0) {
+        color.g = color.g + delta;
+        color.r = color.r - delta;
     }
 }
 var layers = ["maxpooling2d_1", "averagepooling2d_1",
@@ -315,6 +316,7 @@ var layers = ["maxpooling2d_1", "averagepooling2d_1",
               "averagepooling2d_4", "averagepooling2d_5", "averagepooling2d_6",
               "averagepooling2d_7", "averagepooling2d_8", "averagepooling2d_9",
               "averagepooling2d_10", "avg_pool", "predictions"];
+var colorDelta = 1.0 / (layers.length-1);
 function initVis(model) {
     console.log("INITIALIZING VISUALIZATION");
     scene = new THREE.Scene();
@@ -322,7 +324,7 @@ function initVis(model) {
     camera.rotation.z = Math.PI/2;
 
 //    key_iter = model.modelLayersMap.keys();
-    let color = new THREE.Color(0, 1, 1);
+    let color = new THREE.Color(1, 0, 1);
     let z = 0;
     for (let i=0; i < layers.length; i++) {
         let key = layers[i];
@@ -337,7 +339,7 @@ function initVis(model) {
             scene.add(points);
             z = 128;
         } else if (shape && (key.includes("mixed") || (key.includes("pooling") && key != "averagepooling2d_1") )){
-            nextColor(color, .1);
+            nextColor(color, colorDelta);
             let c = shape[2];
             var blocks = [1, 1];
             let newZ = c < 256*3 ? 64 : 32;
@@ -345,7 +347,8 @@ function initVis(model) {
                 blocks = getNewZ(c, newZ);
             }
             console.log(blocks);
-            let points = generateGeometryForTensor(tensor, z, blocks, color);
+            var space = key.includes("max") ? 5 : 3;
+            let points = generateGeometryForTensor(tensor, z, blocks, color, space);
             if (shape.length > 2) {
                 var newC = c / (blocks[0] * blocks[1]);
                 z = z + newC * space + 64;
@@ -354,6 +357,7 @@ function initVis(model) {
             scene.add(points);
         } else if (key.includes("avg_pool")) {
             let depth = 8;
+            color = new THREE.Color(.5,1,.5);
             let points = generateGeometryForDense(tensor, z, depth, color);
             points.name = key;
             scene.add(points);
