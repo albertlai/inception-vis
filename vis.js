@@ -3,7 +3,7 @@ var scene, camera, renderer;
 
 var pointSize = 2.0;
 
-var theta = -Math.PI*9/16;
+var theta = -Math.PI;
 var distance;
 var center = new THREE.Vector3(0,0,0);
 
@@ -180,9 +180,9 @@ function getMax(tensor, N) {
 
 function adjustPredictionIntensity(value, max, i, N) {
     if (i < N) {
-        return 0.1 + 0.9*value/max;
+        return 0.25 + 0.75*value/max;
     } else {
-        return 0.1;
+        return 0.25;
     }
 }
 
@@ -320,7 +320,7 @@ var colorDelta = 1.0 / (layers.length-1);
 function initVis(model) {
     console.log("INITIALIZING VISUALIZATION");
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 5000 );
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000 );
     camera.rotation.z = Math.PI/2;
 
 //    key_iter = model.modelLayersMap.keys();
@@ -373,7 +373,7 @@ function initVis(model) {
     }
     // Set up the center to rotate camera around
     center.z = z/2;//  + 100;
-    distance = center.z + 250;
+    distance = center.z + 750;
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
     

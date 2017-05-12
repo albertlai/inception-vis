@@ -43,7 +43,7 @@
     }
 
     #content {
-    margin: 140px; 100px;
+    margin: 80px 140px;
     }
     
     #input-canvas {
@@ -69,12 +69,17 @@
     -webkit-transition: width 0.2s ease-out;
         transition: width 0.2s ease-out;
     }
+
+    p {
+    max-width:800px;
+    }
   </style>
 </head>
 <body>
   <div id="content">
-    <h2>INSIDE GOOGLE'S BRAIN</h2>
-    <p>Explore how neural networks see the world. Here you can watch which 'neurons' get excited when Google's Inecption V3 neural network looks at an image. Use the arrow keys on your keyboard to navigate.</p>
+    <h2>SCANNING AN ARTIFICIAL BRAIN</h2>
+    <p>Deep learning is making big waves in the tech world, but the concept can be a little opaque. Neural nets are frequently compared to the human brain so I've taken the popular metaphor a little further by making an 'MRI scan' for an image classifier, specifically Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a> architecture. When the network sees an image, different 'neurons' get excited and light up. The system guesses what's in the image by lighting up a square on a 32x32 grid and each square represents one of a thousand categories like 'cat' or 'airplane.'</p>
+    <p>Use the arrow keys on your keyboard to rotate / zoom in. Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a></p>
   SELECT AN IMAGE: &nbsp;<select id="image-urls"></select>&nbsp; OR PASTE AN IMAGE URL <input id="image-input"></input> <button type="button" id="button">GO!</button><br/>
   <br/>
   <canvas id="input-canvas" width="299" height="299"></canvas>
