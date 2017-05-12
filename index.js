@@ -39,13 +39,7 @@ function predict(updateFn) {
         console.log("COMPUTE DONE");
         
         let topK = imagenetClassesTopK(this.output);
-        let str = "";
-        for (i=0; i<topK.length; i++) {
-            let pred = topK[i];
-            str = str + pred["name"] + "\t" + pred["probability"];
-                str = str + " </br>";
-        }
-        document.getElementById("predictions").innerHTML = str;
+        writePredictions(topK);
         
         updateFn(this.model);
         refresh();
@@ -54,6 +48,19 @@ function predict(updateFn) {
         .catch(err => {
             console.log(err);
         });
+}
+
+function writePredictions(topK) {
+        let str = "";
+        for (let i=0; i<topK.length; i++) {
+            let pred = topK[i];
+            let percent = Math.floor(pred["probability"]*100);
+            str = str + pred["name"] + ": " + percent + "%";
+            str = str + "<div class='bar' style='width: " + (percent*3) + "px; background: #00ccff;'></div>";
+            str = str + " </br>";
+        }
+        document.getElementById("predictions").innerHTML = str;
+
 }
 
 // from image_urls.js
