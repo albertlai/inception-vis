@@ -1,4 +1,5 @@
 const IMAGE_URLS = [
+    { name: '-Pick an Image-', value: '' },
   { name: 'Cat', value: 'http://i.imgur.com/CzXTtJV.jpg' },
   { name: 'Dog', value: 'http://i.imgur.com/OB0y6MR.jpg' },
   { name: 'Cheetah', value: 'https://farm2.staticflickr.com/1533/26541536141_41abe98db3_z_d.jpg' },

@@ -11,14 +11,13 @@
   <script type="x-shader/x-vertex" id="vertexshader">
     attribute float alpha;
     attribute vec3 color;
-    uniform float size;
+    attribute float size;
     varying float vAlpha;
-    varying vec3 vColor;    
+    varying vec3 vColor;
     void main() {
       vAlpha = alpha;
       vColor = color;
       vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-//    gl_PointSize = 1.0;
       gl_PointSize = size  * (500.0 / length(mvPosition.xyz));
       gl_Position = projectionMatrix * mvPosition;
     }
@@ -78,7 +77,7 @@
 <body>
   <div id="content">
     <h2>SCANNING AN ARTIFICIAL BRAIN</h2>
-    <p>Deep learning is making big waves in the tech world, but the concept can be a little opaque. Neural nets are frequently compared to the human brain so I've taken the popular metaphor a little further by making an 'MRI scan' for an image classifier, specifically Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a> architecture. When the network sees an image, different 'neurons' get excited and light up. The system guesses what's in the image by highlighting squares on a 32x32 grid and each square represents one of a thousand categories like 'cat' or 'airplane.'</p>
+    <p>Neural networks are frequently compared to the human brain so I've taken the popular metaphor a little further by making an 'MRI scan' for an image classifier, specifically Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a>. The network is made up of a series of layers, each containing a multitude of 'neurons.' Here, image data enters the leftmost layer and as the signal passes through the network, neurons get excited and light up. In the last layer the system guesses what's in the image by highlighting squares on a 32x32 grid. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>
     <p>Use the arrow keys on your keyboard to rotate / zoom in. Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a></p>
   SELECT AN IMAGE: &nbsp;<select id="image-urls"></select>&nbsp; OR PASTE AN IMAGE URL <input id="image-input"></input> <button type="button" id="button">GO!</button><br/>
   <br/>

@@ -75,11 +75,13 @@ function generateGeometryForDense(tensor, z0, depth, color) {
     var c = shape[2];
     var num_vertices = n*m*c;
     var alphas = new Float32Array( num_vertices * 1 );
+    var sizes = new Float32Array( num_vertices * 1 );
     var vertices = new Float32Array( num_vertices * 3 );
     var colors = new Float32Array( num_vertices * 3 );
     var w = Math.ceil(Math.sqrt(num_vertices/depth));
     var space = 8;
     var size = 3.0;
+    var max = 0;
     for (let i=0; i<num_vertices; i++) {
         x = (i % w - w/2) * space;
         y = (Math.floor(i / w) % w -w/2) * space;
@@ -88,12 +90,17 @@ function generateGeometryForDense(tensor, z0, depth, color) {
         vertices[i*3+1] = y;
         vertices[i*3+2] = z;
         let intensity = tensor.get(0,0,i);
-        alphas[i] = intensity*intensity/4;        
+        if (intensity > max) {
+            max = intensity;
+        }
+        alphas[i] = intensity*intensity;
+        sizes[i] = intensity > 1.0 ? size : size * intensity;
         colors[i*3] = color.r;
         colors[i*3+1] = color.g;
         colors[i*3+2] = color.b;
     }
     geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
+    geometry.addAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
     geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
     geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
     geometry.computeBoundingBox();
@@ -113,11 +120,14 @@ function updateGeometryForDense(geometry, tensor) {
     var m = shape[1];
     var c = shape[2];
     var num_vertices = n*m*c;
+    var size = 3.0;
     for (let i=0; i<num_vertices; i++) {
         let intensity = tensor.get(0,0,i);
-        geometry.attributes.alpha.array[i] = intensity*intensity/4;        
+        geometry.attributes.alpha.array[i] = intensity*intensity;
+        geometry.attributes.size.array[i] = intensity > 1.0 ? size : size * intensity;
     }
     geometry.attributes.alpha.needsUpdate = true;
+    geometry.attributes.size.needsUpdate = true;
 }
 
 function generateGeometryForPredictions(tensor, z) {
@@ -129,6 +139,7 @@ function generateGeometryForPredictions(tensor, z) {
     var alphas = new Float32Array(num_vertices * 1 );
     var vertices = new Float32Array(num_vertices * 3 );
     var colors = new Float32Array(num_vertices * 3 );
+    var sizes = new Float32Array(num_vertices * 1);
     var max = getMax(tensor, N);
     for (let i=0; i<num_vertices; i++) {
         let x = (i % w - w/2) * 8;
@@ -137,6 +148,7 @@ function generateGeometryForPredictions(tensor, z) {
         vertices[i*3+1] = y;
         vertices[i*3+2] = z;
         var intensity = adjustPredictionIntensity(tensor.get(i), max, i, N);
+        sizes[i] = i >= N ? 4.0 : Math.max(4.0, 10 * tensor.get(i));
         alphas[i] = intensity;        
         colors[i*3] = color.r;
         colors[i*3+1] = color.g;
@@ -144,10 +156,10 @@ function generateGeometryForPredictions(tensor, z) {
     }
     geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
     geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
+    geometry.addAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
     geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
     geometry.computeBoundingBox();
     var shaderMaterial = new THREE.ShaderMaterial( {
-        uniforms:       { size: { value: 5.0 }},
         vertexShader:   document.getElementById( 'vertexshader' ).textContent,
         fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
         transparent:    true
@@ -164,13 +176,15 @@ function updateGeometryForPredictions(geometry, tensor) {
     for (let i=0; i<num_vertices; i++) {
         var intensity = adjustPredictionIntensity(tensor.get(i), max, i, N);
         geometry.attributes.alpha.array[i] = intensity;
+        geometry.attributes.size.array[i] = i >= N ? 4.0 : Math.max(4.0, 10 * tensor.get(i));
     }
     geometry.attributes.alpha.needsUpdate = true;
+    geometry.attributes.size.needsUpdate = true;
 }
 
 function getMax(tensor, N) {
     var max = 0;
-    for (i=0; i<N; i++) {
+    for (let i=0; i<N; i++) {
         if (tensor.get(i) > max) {
             max = tensor.get(i);
         }
@@ -185,7 +199,14 @@ function adjustPredictionIntensity(value, max, i, N) {
         return 0.25;
     }
 }
-
+function adjustSize(value) {
+    let cap = 3;
+    if (value > cap) {
+        return pointSize * value / cap;
+    } else {
+        return pointSize;
+    }
+}
 function adjustIntensity(value) {
     let cap = 3;
     let factor = 3;
@@ -198,6 +219,7 @@ function adjustIntensity(value) {
     }
 }
 
+var top_vertices = [];
 function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     var geometry = new THREE.BufferGeometry();
     var numPoints = 1;
@@ -215,14 +237,15 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
         y_offset = m * blocks[1] * space/2;
     }
     var alphas = new Float32Array( numVertices * 1 );
+    var sizes = new Float32Array( numVertices * 1 );
     var vertices = new Float32Array( numVertices * 3 );
     var colors = new Float32Array( numVertices * 3 );
     var color = color_start.clone();
     nextColor(color, colorDelta);    
     var total_count = 0;
-    console.log(color);
+    var num_top = Math.min(50, numVertices / 10);
+    var top_N = [];    
     for (let k=c-1; k>0; k--) {
-
         nextColor(color, -colorDelta/k);
         for (let i=0; i<n; i++) {
             x = i * space;
@@ -249,16 +272,42 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
                 colors[total_count*3] = intensity < thresh ? .5 : color.r;
                 colors[total_count*3+1] = intensity < thresh ? .5 : color.g;
                 colors[total_count*3+2] = intensity < thresh ? .5 : color.b;
-                
+                sizes[total_count] = adjustSize(value);
                 alphas[total_count] = intensity < thresh ? thresh : intensity;
                 vertices[total_count*3] = newX;
                 vertices[total_count*3+1] = newY;
                 vertices[total_count*3+2] = newZ;
+                let is_edge = (i==0 || j==0 || i==n-1 || j==m-1) && n>32;
+                if (!is_edge && (top_N.length < num_top || top_N[0]['value'] < value)) {
+                    let obj = {};
+                    obj['vertex'] = new THREE.Vector3(newX, newY, newZ);                
+                    obj['index'] = total_count;
+                    obj['coords'] = new THREE.Vector3(i, j, k);
+                    obj['value'] = value;
+                    obj['shape'] = shape;
+                    if (top_N.length < num_top) {
+                        top_N.push(obj);
+                    } else {
+                        top_N[0] = obj;
+                    }
+                    top_N.sort(function (a, b) {
+                        return a['value'] - b['value'];
+                    });
+                }
                 total_count++;
             }
         }
+    
+    }
+    let top_color = new THREE.Color(1,1,1);
+    for (let i = 0; i < top_N.length; i++) {
+        let index = top_N[i]['index'];
+        colors[index*3] = top_color.r;
+        colors[index*3+1] = top_color.g;
+        colors[index*3+2] = top_color.b;
     }
     geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
+    geometry.addAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
     geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
     geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
     geometry.computeBoundingBox();    
@@ -269,7 +318,8 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
         fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
         transparent:    true
     });
-    var pointcloud = new THREE.Points( geometry, shaderMaterial );    
+    var pointcloud = new THREE.Points( geometry, shaderMaterial );
+    top_vertices.push(top_N);
     return pointcloud;
 }
 
@@ -285,11 +335,13 @@ function updateGeometryForTensor(geometry, tensor) {
                 let value = tensor.get(i,j,k);
                 let intensity = adjustIntensity(value);
                 geometry.attributes.alpha.array[index] = intensity;
+                geometry.attributes.size.array[index] = adjustSize(value);
                 index++;
             }
         }
     }
     geometry.attributes.alpha.needsUpdate = true;
+    geometry.attributes.size.needsUpdate = true;
 }
 
 function getNewZ(z, newZ) {
@@ -311,14 +363,55 @@ function nextColor(color, delta) {
         color.r = color.r - delta;
     }
 }
+
+function drawLines() {
+    let geometry = new THREE.Geometry();
+    let num_layers = top_vertices.length;
+    for (let i=num_layers-1; i>0; i--) {
+        let layer = top_vertices[i];
+        let next_layer = top_vertices[i-1];
+        let x_thresh = windows[i];
+        let y_thresh = windows[i];        
+        for (let j in layer) {
+            let obj = layer[j];
+            let coords = obj['coords'];
+            let size_a = obj['shape'];
+            // very inefficient way to do this
+            for (let k in next_layer) {
+                let target = next_layer[k];
+                let t_coords = target['coords'];
+                let size_b = target['shape'];
+                let scale = size_b[0] / size_a[0];
+                if (Math.abs(coords.x*scale - t_coords.x) < x_thresh*scale &&
+                    Math.abs(coords.y*scale - t_coords.y) < y_thresh*scale) {
+                    geometry.vertices.push(obj['vertex']);
+                    geometry.vertices.push(target['vertex']);
+                }
+            }
+        }
+    }
+    let material = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        linewidth: 1        
+    });
+    material.opacity = 0.1;
+    material.transparent = true;
+    let lines = new THREE.LineSegments(geometry, material);
+    return lines;
+}
+
 var layers = ["maxpooling2d_1", "averagepooling2d_1",
               "averagepooling2d_2", "averagepooling2d_3", "mixed2",
               "averagepooling2d_4", "averagepooling2d_5", "averagepooling2d_6",
               "averagepooling2d_7", "averagepooling2d_8", "averagepooling2d_9",
               "averagepooling2d_10", "avg_pool", "predictions"];
+var windows = [2,2,2,3,2,3,3,3,3,3,3,2];
+
 var colorDelta = 1.0 / (layers.length-1);
+var vis_initiaized = false;
 function initVis(model) {
     console.log("INITIALIZING VISUALIZATION");
+    vis_initiaized = true;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000 );
     camera.rotation.z = Math.PI/2;
@@ -371,6 +464,8 @@ function initVis(model) {
     for (let i=0; i < scene.children.length; i++) {
         scene.children[i].renderOrder = scene.children.length - i;
     }
+
+    scene.add(drawLines());
     // Set up the center to rotate camera around
     center.z = z/2;//  + 100;
     distance = center.z + 750;

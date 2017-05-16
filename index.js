@@ -22,7 +22,7 @@ this.model = new KerasJS.Model({
 this.model.ready()
     .then(() => {
         console.log("INCEPTION V3 READY");
-        loadImageToCanvas(data_url, predict, initVis);
+        hideLoading();
     });
 
 function predict(updateFn) {
@@ -66,15 +66,19 @@ function writePredictions(topK) {
 // from image_urls.js
 select.onchange = function() {
     let selected = select.options[select.selectedIndex];
-    console.log(selected.text);
-    showLoading();
-    loadImageToCanvas(selected.value, predict, updateVis);
+    if (selected.value != '') {
+        console.log(selected.text);
+        showLoading();
+        let callback = vis_initiaized ? updateVis : initVis;
+        loadImageToCanvas(selected.value, predict, callback);
+    }
 };
 
 var text_input = document.getElementById("image-input");
 var button = document.getElementById("button");
 button.onclick = function() {
     showLoading();
+    select.value = '';
     loadImageToCanvas(text_input.value, predict, updateVis);
 }
 
