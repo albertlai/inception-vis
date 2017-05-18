@@ -66,8 +66,10 @@ function updateGeometryForImage(geometry, tensor) {
     geometry.colorsNeedUpdate = true;
 }
 
+var dense_map;
 function generateGeometryForDense(tensor, z0, depth, color) {
     var geometry = new THREE.BufferGeometry();
+    dense_map = {};
     var shape = tensor.shape;
     var x,y,z = 0;
     var n = shape[0];
@@ -81,7 +83,8 @@ function generateGeometryForDense(tensor, z0, depth, color) {
     var w = Math.ceil(Math.sqrt(num_vertices/depth));
     var space = 8;
     var size = 3.0;
-    var max = 0;
+    var top_N = [];
+    var num_top = num_vertices/10;
     for (let i=0; i<num_vertices; i++) {
         x = (i % w - w/2) * space;
         y = (Math.floor(i / w) % w -w/2) * space;
@@ -90,14 +93,28 @@ function generateGeometryForDense(tensor, z0, depth, color) {
         vertices[i*3+1] = y;
         vertices[i*3+2] = z;
         let intensity = tensor.get(0,0,i);
-        if (intensity > max) {
-            max = intensity;
-        }
         alphas[i] = intensity*intensity;
         sizes[i] = intensity > 1.0 ? size : size * intensity;
         colors[i*3] = color.r;
         colors[i*3+1] = color.g;
         colors[i*3+2] = color.b;
+
+        let obj = {};
+        obj['vertex'] = new THREE.Vector3(x, y, z);                
+        obj['index'] = i;
+        obj['value'] = intensity;
+        if (top_N.length < num_top) {
+            top_N.push(obj);
+        } else if (intensity > top_N[0]['value']) {            
+            top_N[0] = obj;
+        }
+        top_N.sort(function (a, b) {
+            return a['value'] - b['value'];
+        });               
+    }
+    for (let i=0; i<num_top; i++) {
+        let obj = top_N[i];
+        dense_map[obj['index']] = obj;
     }
     geometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ) );
     geometry.addAttribute( 'size', new THREE.BufferAttribute( sizes, 1 ) );
@@ -130,6 +147,7 @@ function updateGeometryForDense(geometry, tensor) {
     geometry.attributes.size.needsUpdate = true;
 }
 
+var predictions;
 function generateGeometryForPredictions(tensor, z) {
     var geometry = new THREE.BufferGeometry();
     var N = tensor.shape[0];
@@ -141,13 +159,25 @@ function generateGeometryForPredictions(tensor, z) {
     var colors = new Float32Array(num_vertices * 3 );
     var sizes = new Float32Array(num_vertices * 1);
     var max = getMax(tensor, N);
+    predictions = [];
+    var num_top = 5;
     for (let i=0; i<num_vertices; i++) {
         let x = (i % w - w/2) * 8;
         let y = (Math.floor(i / w)-w/2) * 8;
         vertices[i*3] = x;
         vertices[i*3+1] = y;
         vertices[i*3+2] = z;
-        var intensity = adjustPredictionIntensity(tensor.get(i), max, i, N);
+        let value = tensor.get(i);
+        let prediction_obj = {'index': i, 'value': value, 'vertex': new THREE.Vector3(x,y,z)};
+        if (predictions.length < num_top) {
+            predictions.push(prediction_obj);
+        } else if (value > predictions[0]['value']) {
+            predictions[0] = prediction_obj;
+        }
+        predictions.sort(function(a, b) {
+            return a['value'] - b['value'];
+        });
+        var intensity = adjustPredictionIntensity(value, max, i, N);
         sizes[i] = i >= N ? 4.0 : Math.max(4.0, 10 * tensor.get(i));
         alphas[i] = intensity;        
         colors[i*3] = color.r;
@@ -400,6 +430,51 @@ function drawLines() {
     return lines;
 }
 
+function drawPredictionLines(weights) {
+    let lines = [];
+    for (let k=0; k < predictions.length; k++) {
+        let prediction_obj = predictions[k];
+        let prediction_index = prediction_obj['index'];
+        let geometry = new THREE.Geometry();
+        let dense_weights =  weights.pick(null, prediction_index);
+        let max_weights = [];
+        let num_max = dense_weights.size/10;
+        for (let i = 0; i < dense_weights.size; i++) {
+            let value = dense_weights.get(i);
+            if (max_weights.length < num_max) {
+                max_weights.push({'value': value, 'index': i});            
+            } else if (value > max_weights[0]['value']){
+                max_weights[0] = {'value': value, 'index': i};
+            }
+            max_weights.sort(function(a, b) {
+                return a['value']-b['value'];
+            });
+            
+        }
+        console.log(max_weights);
+        console.log(dense_map);
+        for (let i = 0; i < num_max; i++) {
+            let obj = max_weights[i];
+            let index = obj['index'];
+            console.log(index);
+            if (dense_map.hasOwnProperty(index)) {
+                console.log("HIT");
+                let dense_obj = dense_map[index];
+                geometry.vertices.push(prediction_obj['vertex']);
+                geometry.vertices.push(dense_obj['vertex']);
+            }
+        }
+        let material = new THREE.LineBasicMaterial({
+            color: 0xffffff,
+            linewidth: 1        
+        });
+        material.opacity = prediction_obj['value']/2;
+        material.transparent = true;
+        lines.push(new THREE.LineSegments(geometry, material));
+    }
+    return lines;
+}
+
 var layers = ["maxpooling2d_1", "averagepooling2d_1",
               "averagepooling2d_2", "averagepooling2d_3", "mixed2",
               "averagepooling2d_4", "averagepooling2d_5", "averagepooling2d_6",
@@ -458,13 +533,16 @@ function initVis(model) {
         } else if (key.includes("prediction")) {
             let points = generateGeometryForPredictions(tensor, z);
             points.name = key;
-            scene.add(points);
+            scene.add(points);            
         }
     }
     for (let i=0; i < scene.children.length; i++) {
         scene.children[i].renderOrder = scene.children.length - i;
     }
-
+    let prediction_lines = drawPredictionLines(model.modelLayersMap.get('predictions').weights.W.tensor);
+    for (let i=0; i < prediction_lines.length; i++) {
+        scene.add(prediction_lines[i]);
+    }
     scene.add(drawLines());
     // Set up the center to rotate camera around
     center.z = z/2;//  + 100;
