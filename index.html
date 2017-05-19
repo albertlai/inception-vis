@@ -58,13 +58,27 @@
       height:300px;
     }
 
-
+    #vis-container{
+      position: relative;
+    }
+    #vis {
+      position: absolute
+    }
     #predictions {
       display: none;
+      position: absolute;
+      text-align: right;
+      color: white;
+      right: 15px;
+      top: 15px;
     }
 
     .bar {
-    height: 10px;
+    height: 8px;
+    margin-right: 0px;
+    margin-left: auto;
+    margin-top: 10px
+    margin-bottom: 10px;
     -webkit-transition: width 0.2s ease-out;
         transition: width 0.2s ease-out;
     }
@@ -72,26 +86,48 @@
     p {
     max-width:800px;
     }
+    #text {
+    float: left;
+    width: 450px;
+    padding-right: 80px;
+    }
+    #source {
+    float: left;
+    }
   </style>
 </head>
 <body>
   <div id="content">
     <h2>SCANNING AN ARTIFICIAL BRAIN</h2>
-    <p>Neural networks are frequently compared to the human brain so I've taken the popular metaphor a little further by making an 'MRI scan' for an image classifier, specifically Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a>. The network is made up of a series of layers, each containing a multitude of 'neurons.' Here, image data enters the leftmost layer and as the signal passes through the network, neurons get excited and light up. In the last layer the system guesses what's in the image by highlighting squares on a 32x32 grid. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>
-    <p>Use the arrow keys on your keyboard to rotate / zoom in. Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a></p>
-  SELECT AN IMAGE: &nbsp;<select id="image-urls"></select>&nbsp; OR PASTE AN IMAGE URL <input id="image-input"></input> <button type="button" id="button">GO!</button><br/>
-  <br/>
-  <canvas id="input-canvas" width="299" height="299"></canvas>
-  <div id="container">
-    <div id="predictions"></div>
-    <div id="spinner">
-      <svg class="circular" viewBox="25 25 50 50">
-        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
-      </svg>
+    <div id="text">
+      <p>Neural networks are frequently compared to the human brain so I've taken the metaphor a bit further by making an 'MRI scan' for a popular image classifier, specifically Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a>. The network is made up of many layers, each containing a multitude of 'neurons' and in this visualiazation, each recangular block is a single layer. </p>
+      <p>Image data enters the leftmost layer (you can still make out the rough shape of the original image in this layer) and as the signal passes through the network, neurons get excited and light up. The last layer the system guesses what's in the image by highlighting a square. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>
+      <p>Use the arrow keys on your keyboard to rotate / zoom in. Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a></p>
     </div>
+    <div id="source">
+      <p>
+        SELECT AN IMAGE: &nbsp;<select id="image-urls"></select>&nbsp;
+      </p>
+      OR PASTE AN IMAGE URL <input id="image-input"></input> <button type="button" id="button">GO!</button><br/>
+
+      <br/>
+      <canvas id="input-canvas" width="299" height="299"></canvas>
+    </div>
+    <div style="clear: both;"></div>
+    <div id="container">
+      <div id="spinner">
+        <svg class="circular" viewBox="25 25 50 50">
+          <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
+        </svg>
+      </div>
     </div>  
   </div>
   <script src="image_urls.js"></script>
   <script src="vis.js"></script>
   <script src="index.js"></script>
+  <div id="vis-container">
+  <div id="vis">
+  </div>
+  <div id="predictions"></div>
+  </div>
 </body>

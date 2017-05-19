@@ -57,7 +57,6 @@ function writePredictions(topK) {
             let percent = Math.floor(pred["probability"]*100);
             str = str + pred["name"] + ": " + percent + "%";
             str = str + "<div class='bar' style='width: " + (percent*3) + "px; background: #00ccff;'></div>";
-            str = str + " </br>";
         }
         document.getElementById("predictions").innerHTML = str;
 

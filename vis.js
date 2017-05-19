@@ -7,6 +7,7 @@ var theta = -Math.PI;
 var distance;
 var center = new THREE.Vector3(0,0,0);
 
+
 function adjustColor(value) {
     return (value/2+0.5);
 }
@@ -67,6 +68,7 @@ function updateGeometryForImage(geometry, tensor) {
 }
 
 var dense_map;
+var top_dense;
 function generateGeometryForDense(tensor, z0, depth, color) {
     var geometry = new THREE.BufferGeometry();
     dense_map = {};
@@ -84,7 +86,7 @@ function generateGeometryForDense(tensor, z0, depth, color) {
     var space = 8;
     var size = 3.0;
     var top_N = [];
-    var num_top = num_vertices/10;
+    var num_top = num_vertices/20;
     for (let i=0; i<num_vertices; i++) {
         x = (i % w - w/2) * space;
         y = (Math.floor(i / w) % w -w/2) * space;
@@ -112,6 +114,7 @@ function generateGeometryForDense(tensor, z0, depth, color) {
             return a['value'] - b['value'];
         });               
     }
+    top_dense = top_N;
     for (let i=0; i<num_top; i++) {
         let obj = top_N[i];
         dense_map[obj['index']] = obj;
@@ -273,7 +276,11 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     var color = color_start.clone();
     nextColor(color, colorDelta);    
     var total_count = 0;
-    var num_top = Math.min(50, numVertices / 10);
+    var num_top = numVertices / 40;
+    if (c > 1000) {
+        num_top = numVertices / 160;
+    }
+    num_top = Math.min(50, num_top);
     var top_N = [];    
     for (let k=c-1; k>0; k--) {
         nextColor(color, -colorDelta/k);
@@ -429,6 +436,26 @@ function drawLines() {
     let lines = new THREE.LineSegments(geometry, material);
     return lines;
 }
+function drawDenseLines() {
+    let geometry = new THREE.Geometry();
+    let layer = top_vertices[top_vertices.length-1];
+    for (let i = Math.floor(layer.length*3/4); i < layer.length; i++) {
+        let obj = layer[i];
+        for (let j = Math.floor(top_dense.length*3 / 4); j < top_dense.length; j++) {
+            let target = top_dense[j];
+            geometry.vertices.push(obj['vertex']);
+            geometry.vertices.push(target['vertex']);            
+        }
+    }
+    let material = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        linewidth: 1        
+    });
+    material.opacity = 0.1;
+    material.transparent = true;
+    let lines = new THREE.LineSegments(geometry, material);
+    return lines;
+}
 
 function drawPredictionLines(weights) {
     let lines = [];
@@ -438,7 +465,7 @@ function drawPredictionLines(weights) {
         let geometry = new THREE.Geometry();
         let dense_weights =  weights.pick(null, prediction_index);
         let max_weights = [];
-        let num_max = dense_weights.size/10;
+        let num_max = dense_weights.size/20;
         for (let i = 0; i < dense_weights.size; i++) {
             let value = dense_weights.get(i);
             if (max_weights.length < num_max) {
@@ -451,14 +478,10 @@ function drawPredictionLines(weights) {
             });
             
         }
-        console.log(max_weights);
-        console.log(dense_map);
         for (let i = 0; i < num_max; i++) {
             let obj = max_weights[i];
             let index = obj['index'];
-            console.log(index);
             if (dense_map.hasOwnProperty(index)) {
-                console.log("HIT");
                 let dense_obj = dense_map[index];
                 geometry.vertices.push(prediction_obj['vertex']);
                 geometry.vertices.push(dense_obj['vertex']);
@@ -468,7 +491,7 @@ function drawPredictionLines(weights) {
             color: 0xffffff,
             linewidth: 1        
         });
-        material.opacity = prediction_obj['value']/2;
+        material.opacity = prediction_obj['value']*2/3;
         material.transparent = true;
         lines.push(new THREE.LineSegments(geometry, material));
     }
@@ -510,7 +533,15 @@ function initVis(model) {
             nextColor(color, colorDelta);
             let c = shape[2];
             var blocks = [1, 1];
-            let newZ = c < 256*3 ? 64 : 32;
+            var newZ = 32;
+            if (c == 736) {
+                newZ = 46;
+            }
+            if (c == 64) {
+                newZ = 64;
+            }
+            
+            console.log(newZ);
             if (c > newZ) {
                 blocks = getNewZ(c, newZ);
             }
@@ -519,7 +550,7 @@ function initVis(model) {
             let points = generateGeometryForTensor(tensor, z, blocks, color, space);
             if (shape.length > 2) {
                 var newC = c / (blocks[0] * blocks[1]);
-                z = z + newC * space + 64;
+                z = z + newC * space + 32;
             }
             points.name = key;
             scene.add(points);
@@ -529,7 +560,7 @@ function initVis(model) {
             let points = generateGeometryForDense(tensor, z, depth, color);
             points.name = key;
             scene.add(points);
-            z = z + depth * space + 64;
+            z = z + depth * space + 128;
         } else if (key.includes("prediction")) {
             let points = generateGeometryForPredictions(tensor, z);
             points.name = key;
@@ -541,16 +572,19 @@ function initVis(model) {
     }
     let prediction_lines = drawPredictionLines(model.modelLayersMap.get('predictions').weights.W.tensor);
     for (let i=0; i < prediction_lines.length; i++) {
-        scene.add(prediction_lines[i]);
+//        scene.add(prediction_lines[i]);
     }
-    scene.add(drawLines());
+//    scene.add(drawDenseLines());
+//    scene.add(drawLines());
     // Set up the center to rotate camera around
     center.z = z/2;//  + 100;
-    distance = center.z + 750;
+    distance = center.z + 500;
+
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
     
-    document.body.appendChild( renderer.domElement );
+    document.getElementById('vis').appendChild(renderer.domElement );
+
 }
 
 function updateVis(model) {
