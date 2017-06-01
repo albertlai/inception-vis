@@ -27,7 +27,7 @@
     varying vec3 vColor;
     varying float vAlpha;
     void main() {
-      if (vAlpha > 0.0) {
+      if (vAlpha > 0.01) {
         gl_FragColor = vec4( vColor, vAlpha );
       } else {
         discard;
@@ -42,7 +42,7 @@
     }
 
     #content {
-    margin: 80px 140px;
+    margin: 80px 140px 40px 140px;
     }
     
     #input-canvas {
@@ -59,16 +59,21 @@
     }
 
     #vis-container{
-      position: relative;
+    position: relative;
+    margin: 0px 70px;
+    height: 100vh;
     }
     #vis {
-      position: absolute
+    position: absolute;
+    background-color: black;
+    width: 100%;
+    height: 100vh;
     }
     #predictions {
       display: none;
       position: absolute;
       text-align: right;
-      color: white;
+      color: #777777;
       right: 15px;
       top: 15px;
     }
@@ -86,7 +91,7 @@
     p {
     max-width:800px;
     }
-    #text {
+    .text {
     float: left;
     width: 450px;
     padding-right: 80px;
@@ -99,9 +104,17 @@
 <body>
   <div id="content">
     <h2>SCANNING AN ARTIFICIAL BRAIN</h2>
-    <div id="text">
-      <p>Neural networks are frequently compared to the human brain so I've taken the metaphor a bit further by making an 'MRI scan' for a popular image classifier, specifically Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a>. The network is made up of many layers, each containing a multitude of 'neurons' and in this visualiazation, each recangular block is a single layer. </p>
-      <p>Image data enters the leftmost layer (you can still make out the rough shape of the original image in this layer) and as the signal passes through the network, neurons get excited and light up. The last layer the system guesses what's in the image by highlighting a square. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>
+    <div class="text">
+      <p>As the name implies, artificial neural networks are based on a simplified model of how we think our brains work. Real brains are made out of physical, interconnected cells called neurons whereas neural networks are made out of 'artificial' neurons - mathematical representations instead of the messy stuff in your head. Artificial neurons are arranged in interconnected layers, hence the 'deep' in deep learning. </p>
+
+      <img src="https://upload.wikimedia.org/wikipedia/en/d/d1/FMRIscan.jpg" style="float:left; margin-right:10px;"/>
+      
+      <p>I've taken the neural net -> brain metaphor a bit further by making an 'MRI scan' for a popular image classifier network. A real MRI scan detects activity in the brain when the subject is stimulated, so you may see a different pattern of activity in the scan when the subject sees a scary spider vs a baby seal. When a neural network looks at an image, different regions of artificial neurons become 'activated'. </p>
+      
+        <p>For this visualization we feed Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a> network images from the internet.   </p>
+
+<!--      <p>Image data enters the leftmost layer (you can still make out the rough shape of the original image) and as the signal passes through the network, neurons get excited and light up. The last layer the system guesses what's in the image by highlighting a square. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>-->
+
       <p>Use the arrow keys on your keyboard to rotate / zoom in. Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a></p>
     </div>
     <div id="source">
@@ -130,4 +143,12 @@
   </div>
   <div id="predictions"></div>
   </div>
+  <div class="text">
+    <p>The way you teach neural nets and brains end up being pretty similar.</p>
+      
+      <p>Let's say you're reading a picture book to a toddler. You point at the cute animals and enthusiastically call out "Lamb!" "Dog!" or "Cat!" - if the child points at a cow and says "Pig!" you'd gently correct "No, that's a cow, not a pig." After many repetitions, the young brain will magically wire its neurons up to identify farm animals. </p>
+
+      <p>Analagously, researchers show a network millions of labelled photographs, compressing years of human visual experience into a few hours. If the network claims an image labelled 'bed' is an airplane, instead of wiring up physical neurons it corrects itself by nudging mathematical parameters.</p>
+
+</div>
 </body>

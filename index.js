@@ -42,7 +42,8 @@ function predict(updateFn) {
         writePredictions(topK);
         
         updateFn(this.model);
-        refresh();
+        startAnimate();
+//        refresh();
         hideLoading();
     })
         .catch(err => {
@@ -68,7 +69,7 @@ select.onchange = function() {
     if (selected.value != '') {
         console.log(selected.text);
         showLoading();
-        let callback = vis_initiaized ? updateVis : initVis;
+        let callback = vis_initialized ? updateVis : initVis;
         loadImageToCanvas(selected.value, predict, callback);
     }
 };
@@ -105,6 +106,7 @@ function checkKey(e) {
         e.preventDefault();        
         break;        
     }
+    stopAnimate();
 }
 
 function hideLoading() {

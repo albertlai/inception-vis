@@ -1,12 +1,16 @@
 
 var scene, camera, renderer;
 
-var pointSize = 2.0;
+var pointSize = 4.0;
 
-var theta = -Math.PI;
+var theta = -Math.PI/2;
 var distance;
 var center = new THREE.Vector3(0,0,0);
-
+var animateStart = 0;
+var animationLength = 1000;
+var animationLayer = 0;
+var currentModel;
+var padding = 140;
 
 function adjustColor(value) {
     return (value/2+0.5);
@@ -95,8 +99,9 @@ function generateGeometryForDense(tensor, z0, depth, color) {
         vertices[i*3+1] = y;
         vertices[i*3+2] = z;
         let intensity = tensor.get(0,0,i);
-        alphas[i] = intensity*intensity;
-        sizes[i] = intensity > 1.0 ? size : size * intensity;
+        alphas[i] = 0;//intensity*intensity;
+        sizes[i] = Math.min( size * intensity, size*2);
+        color = heatMap(intensity*4);
         colors[i*3] = color.r;
         colors[i*3+1] = color.g;
         colors[i*3+2] = color.b;
@@ -134,7 +139,7 @@ function generateGeometryForDense(tensor, z0, depth, color) {
     return pointcloud;
 }
 
-function updateGeometryForDense(geometry, tensor) {
+function updateGeometryForDense(geometry, tensor, alpha) {
     var shape = tensor.shape;
     var n = shape[0];
     var m = shape[1];
@@ -143,11 +148,16 @@ function updateGeometryForDense(geometry, tensor) {
     var size = 3.0;
     for (let i=0; i<num_vertices; i++) {
         let intensity = tensor.get(0,0,i);
-        geometry.attributes.alpha.array[i] = intensity*intensity;
+        geometry.attributes.alpha.array[i] = alpha * intensity*intensity;
         geometry.attributes.size.array[i] = intensity > 1.0 ? size : size * intensity;
+        let color = heatMap(intensity*4);
+        geometry.attributes.color.array[i*3] = color.r;
+        geometry.attributes.color.array[i*3+1] = color.g;
+        geometry.attributes.color.array[i*3+2] = color.b;
     }
     geometry.attributes.alpha.needsUpdate = true;
     geometry.attributes.size.needsUpdate = true;
+    geometry.attributes.color.needsUpdate = true;
 }
 
 var predictions;
@@ -181,8 +191,9 @@ function generateGeometryForPredictions(tensor, z) {
             return a['value'] - b['value'];
         });
         var intensity = adjustPredictionIntensity(value, max, i, N);
-        sizes[i] = i >= N ? 4.0 : Math.max(4.0, 10 * tensor.get(i));
-        alphas[i] = intensity;        
+        color = adjustPredictionColor(value, max, i, N);
+        sizes[i] = i >= N ? 4.0 : Math.max(4.0, 10 * Math.sqrt(tensor.get(i)));
+        alphas[i] = 0;// intensity;        
         colors[i*3] = color.r;
         colors[i*3+1] = color.g;
         colors[i*3+2] = color.b;
@@ -201,18 +212,23 @@ function generateGeometryForPredictions(tensor, z) {
     return pointcloud;
 }
 
-function updateGeometryForPredictions(geometry, tensor) {
+function updateGeometryForPredictions(geometry, tensor, alpha) {
     var N = tensor.shape[0];
     var w = Math.ceil(Math.sqrt(N));
     var num_vertices = w*w;
     var max = getMax(tensor, N);
     for (let i=0; i<num_vertices; i++) {
         var intensity = adjustPredictionIntensity(tensor.get(i), max, i, N);
-        geometry.attributes.alpha.array[i] = intensity;
+        geometry.attributes.alpha.array[i] = intensity * alpha;
         geometry.attributes.size.array[i] = i >= N ? 4.0 : Math.max(4.0, 10 * tensor.get(i));
+        let color = adjustPredictionColor(tensor.get(i), max, i, N);
+        geometry.attributes.color.array[i*3] = color.r;
+        geometry.attributes.color.array[i*3+1] = color.g;
+        geometry.attributes.color.array[i*3+2] = color.b;        
     }
     geometry.attributes.alpha.needsUpdate = true;
     geometry.attributes.size.needsUpdate = true;
+    geometry.attributes.color.needsUpdate = true;
 }
 
 function getMax(tensor, N) {
@@ -227,31 +243,59 @@ function getMax(tensor, N) {
 
 function adjustPredictionIntensity(value, max, i, N) {
     if (i < N) {
-        return 0.25 + 0.75*value/max;
+        return 0.5 + 0.5*value/max;
     } else {
-        return 0.25;
+        return 0.5;
     }
 }
+
+function adjustPredictionColor(value, max, i, N) {
+    let b = 1;
+    if (i < N) {
+        b =  1 - value/max;
+    }
+    return new THREE.Color(1,1,b);
+}
+
 function adjustSize(value) {
-    let cap = 3;
+    let cap = 8;
     if (value > cap) {
-        return pointSize * value / cap;
+        return Math.min(pointSize*2, pointSize * value / cap);
     } else {
         return pointSize;
     }
 }
+
 function adjustIntensity(value) {
-    let cap = 3;
-    let factor = 3;
+    let cap = 4;
+    let factor = 4;
+    let intensity = 0;
     if (value >= cap) {
-        return 1;
+        intensity = 1;
     } else if (value > 0. && value < cap) {
-        return Math.pow(value,factor)/Math.pow(cap,factor+1);
-    } else {
-        return 0;
+        intensity = Math.pow(value,factor)/Math.pow(cap,factor+1);
     }
+    return intensity;
 }
 
+function heatMap(value) {
+    value = value / 4;
+    if (value > 2) {
+        value = 2;
+    }
+    if (value < 1) {
+        value = 0;
+    } else {
+        value = value - 1;
+    }
+    if (value < 0.5) {
+        return new THREE.Color(1-value, 1, 1);
+    } else if (value < 0.75) {
+        return new THREE.Color(.5+(value-.5)*2, 1, 1-value);
+    } else {
+        return new THREE.Color(1, 1-((value-.75)*2), 1-value);
+    }
+}
 var top_vertices = [];
 function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     var geometry = new THREE.BufferGeometry();
@@ -274,7 +318,7 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     var vertices = new Float32Array( numVertices * 3 );
     var colors = new Float32Array( numVertices * 3 );
     var color = color_start.clone();
-    nextColor(color, colorDelta);    
+    //nextColor(color, colorDelta);    
     var total_count = 0;
     var num_top = numVertices / 40;
     if (c > 1000) {
@@ -283,7 +327,7 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     num_top = Math.min(50, num_top);
     var top_N = [];    
     for (let k=c-1; k>0; k--) {
-        nextColor(color, -colorDelta/k);
+        //nextColor(color, -colorDelta/k);
         for (let i=0; i<n; i++) {
             x = i * space;
             for (let j=0; j<m; j++) {
@@ -291,6 +335,7 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
                 z = z0 + (k+Math.random()-0.5) * space;
                 let value = tensor.get(i,j,k);
                 let intensity = adjustIntensity(value);
+                color = heatMap(value);
                 let block = Math.floor(k / newC);
                 let newX = x;
                 let newY = y;
@@ -310,7 +355,7 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
                 colors[total_count*3+1] = intensity < thresh ? .5 : color.g;
                 colors[total_count*3+2] = intensity < thresh ? .5 : color.b;
                 sizes[total_count] = adjustSize(value);
-                alphas[total_count] = intensity < thresh ? thresh : intensity;
+                alphas[total_count] = 0; // intensity < thresh ? thresh : intensity;
                 vertices[total_count*3] = newX;
                 vertices[total_count*3+1] = newY;
                 vertices[total_count*3+2] = newZ;
@@ -336,7 +381,7 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
         }
     
     }
-    let top_color = new THREE.Color(1,1,1);
+    let top_color = new THREE.Color(1,0,0);
     for (let i = 0; i < top_N.length; i++) {
         let index = top_N[i]['index'];
         colors[index*3] = top_color.r;
@@ -360,7 +405,7 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     return pointcloud;
 }
 
-function updateGeometryForTensor(geometry, tensor) {
+function updateGeometryForTensor(geometry, tensor, alpha) {
     var shape = tensor.shape;
     var n = shape[0];
     var m = shape[1];
@@ -371,6 +416,13 @@ function updateGeometryForTensor(geometry, tensor) {
             for (let j=0; j<m; j++) {
                 let value = tensor.get(i,j,k);
                 let intensity = adjustIntensity(value);
+                if (alpha >= 0) {
+                    intensity = alpha * intensity;
+                }
+                let color = heatMap(value);
+                geometry.attributes.color.array[index*3] = color.r;
+                geometry.attributes.color.array[index*3+1] = color.g;
+                geometry.attributes.color.array[index*3+2] = color.b;
                 geometry.attributes.alpha.array[index] = intensity;
                 geometry.attributes.size.array[index] = adjustSize(value);
                 index++;
@@ -379,6 +431,7 @@ function updateGeometryForTensor(geometry, tensor) {
     }
     geometry.attributes.alpha.needsUpdate = true;
     geometry.attributes.size.needsUpdate = true;
+    geometry.attributes.color.needsUpdate = true;
 }
 
 function getNewZ(z, newZ) {
@@ -498,20 +551,25 @@ function drawPredictionLines(weights) {
     return lines;
 }
 
-var layers = ["maxpooling2d_1", "averagepooling2d_1",
-              "averagepooling2d_2", "averagepooling2d_3", "mixed2",
-              "averagepooling2d_4", "averagepooling2d_5", "averagepooling2d_6",
-              "averagepooling2d_7", "averagepooling2d_8", "averagepooling2d_9",
+//var layers = ["maxpooling2d_1", "averagepooling2d_1",
+var layers = [ "averagepooling2d_1",              
+              //              "averagepooling2d_2", "averagepooling2d_3", "mixed2",
+              "mixed0", "mixed1", "mixed2",
+//              "averagepooling2d_4", "averagepooling2d_5", "averagepooling2d_6",
+              "mixed3", "mixed4", "mixed5",
+//              "averagepooling2d_7", "averagepooling2d_8", "averagepooling2d_9",
+              "mixed6", "averagepooling2d_8", "mixed8",
               "averagepooling2d_10", "avg_pool", "predictions"];
 var windows = [2,2,2,3,2,3,3,3,3,3,3,2];
 
 var colorDelta = 1.0 / (layers.length-1);
-var vis_initiaized = false;
+var vis_initialized = false;
 function initVis(model) {
+    currentModel = model;
     console.log("INITIALIZING VISUALIZATION");
-    vis_initiaized = true;
+    vis_initialized = true;
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000 );
+    camera = new THREE.PerspectiveCamera(45, (window.innerWidth-padding) / window.innerHeight, 1, 5000 );
     camera.rotation.z = Math.PI/2;
 
 //    key_iter = model.modelLayersMap.keys();
@@ -529,8 +587,8 @@ function initVis(model) {
             points.name =key;
             scene.add(points);
             z = 128;
-        } else if (shape && (key.includes("mixed") || (key.includes("pooling") && key != "averagepooling2d_1") )){
-            nextColor(color, colorDelta);
+        } else if (shape && (key.includes("mixed") || key.includes("pooling") )){
+            //nextColor(color, colorDelta);
             let c = shape[2];
             var blocks = [1, 1];
             var newZ = 32;
@@ -581,29 +639,48 @@ function initVis(model) {
     distance = center.z + 500;
 
     renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize( window.innerWidth-padding, window.innerHeight);
     
     document.getElementById('vis').appendChild(renderer.domElement );
-
 }
 
+
+function getAnimationLayer(now) {
+    const elapsed = now - animateStart;
+    if (elapsed > (1 + layers.length) * animationLength) {
+        return -1;
+    } else {
+        return Math.floor(elapsed / animationLength)-1;
+    }
+}
 function updateVis(model) {
-    console.log("UPDATING VISUALIZATION");
+    currentModel = model;
+//    console.log("UPDATING VISUALIZATION");
     var children = scene.children;
     for (let i=0; i<children.length; i++) {
-        let child = children[i];
-        let key = child.name;
-        let layer = model.modelLayersMap.get(key);
-        let tensor = layer.result.tensor;
-        let geometry = child.geometry;
-        if (key.includes("input")) {
-            updateGeometryForImage(geometry, tensor);
-        } else if (key.includes("pooling") && key != "averagepooling2d_1") {           
-            updateGeometryForTensor(geometry, tensor);
-        } else if (key.includes("avg_pool")) {
-            updateGeometryForDense(geometry, tensor);
-        } else if (key.includes("prediction")) {
-            updateGeometryForPredictions(geometry, tensor);
+        const now = new Date().getTime();
+        animationLayer = getAnimationLayer(now);
+        if (animationLayer < 0 || animationLayer == i) {
+            let child = children[i];
+            let key = child.name;
+            let layer = model.modelLayersMap.get(key);
+            let tensor = layer.result.tensor;
+            let geometry = child.geometry;
+            const delta = now - animateStart;
+            let alpha = 0;
+            if (animationLayer >= 0 && delta < animationLength * (layers.length+1)) {
+                alpha = (delta % animationLength) / animationLength;
+            }
+            
+            if (key.includes("input")) {
+                updateGeometryForImage(geometry, tensor);
+            } else if (key.includes("pooling") || key.includes("mixed")) {           
+                updateGeometryForTensor(geometry, tensor, alpha);
+            } else if (key.includes("avg_pool")) {
+                updateGeometryForDense(geometry, tensor, alpha);
+            } else if (key.includes("prediction")) {
+                updateGeometryForPredictions(geometry, tensor, alpha);
+            }
         }
     }
 }
@@ -614,4 +691,36 @@ function refresh() {
     camera.lookAt(center);
     camera.rotation.z = Math.PI/2;
     renderer.render(scene, camera);
+}
+
+// shim layer with setTimeout fallback
+window.requestAnimFrame = (function(){
+    return  window.requestAnimationFrame       ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame    ||
+        function( callback ){
+            window.setTimeout(callback, 1000 / 60);
+        };
+})();
+
+
+function startAnimate() {
+    theta = -Math.PI/2;
+    animateStart = new Date().getTime();
+    animate();
+}
+
+var requestId;
+function animate(){
+    theta += -.005;
+    if ((new Date().getTime()-animateStart) < animationLength*(1+layers.length)) {
+        updateVis(currentModel);
+        requestId = requestAnimFrame(animate);
+    }
+    refresh();
+}
+
+function stopAnimate() {
+    window.cancelAnimationFrame(requestId);
+    requestId = undefined;
 }
