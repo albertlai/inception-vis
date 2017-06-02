@@ -23,6 +23,7 @@ this.model.ready()
     .then(() => {
         console.log("INCEPTION V3 READY");
         hideLoading();
+        loadURLs();
     });
 
 function predict(updateFn) {

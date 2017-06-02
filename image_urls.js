@@ -18,11 +18,13 @@ const IMAGE_URLS = [
 ];
 
 var select = document.getElementById("image-urls");
-for (i=0; i < IMAGE_URLS.length; i++) {
-    let obj = IMAGE_URLS[i];
-    let option = document.createElement("option");
-    option.text = obj.name;
-    option.value = obj.value;
-    select.add(option);
-    
+function loadURLs() {
+    select.remove(0);
+    for (i=0; i < IMAGE_URLS.length; i++) {
+        let obj = IMAGE_URLS[i];
+        let option = document.createElement("option");
+        option.text = obj.name;
+        option.value = obj.value;
+        select.add(option);
+    }
 }
