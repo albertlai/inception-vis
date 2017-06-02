@@ -42,7 +42,8 @@ function predict(updateFn) {
         writePredictions(topK);
         
         updateFn(this.model);
-        startAnimate();
+        showStart();
+//        startAnimate();
 //        refresh();
         hideLoading();
     })
@@ -52,15 +53,14 @@ function predict(updateFn) {
 }
 
 function writePredictions(topK) {
-        let str = "";
-        for (let i=0; i<topK.length; i++) {
-            let pred = topK[i];
-            let percent = Math.floor(pred["probability"]*100);
-            str = str + pred["name"] + ": " + percent + "%";
-            str = str + "<div class='bar' style='width: " + (percent*3) + "px; background: #00ccff;'></div>";
-        }
-        document.getElementById("predictions").innerHTML = str;
-
+    let str = "";
+    for (let i=0; i<topK.length; i++) {
+        let pred = topK[i];
+        let percent = Math.floor(pred["probability"]*100);
+        str = str + pred["name"] + ": " + percent + "%";
+        str = str + "<div class='bar' style='width: " + (percent*3) + "px; background: #ffcc00;'></div>";
+    }
+    document.getElementById("predictions").innerHTML = str;
 }
 
 // from image_urls.js
@@ -84,39 +84,47 @@ button.onclick = function() {
 
 document.onkeydown = checkKey;
 function checkKey(e) {
-    switch (e.keyCode) {
-    case right:
-        theta += -Math.PI/50;
-        refresh();
-        e.preventDefault();
-        break;
-    case left:
-        theta += Math.PI/50;
-        refresh();
-        e.preventDefault();        
-        break;
-    case up:
-        distance += -100;
-        refresh();
-        e.preventDefault();                
-        break;
-    case down:
-        distance += 100;
-        refresh();
-        e.preventDefault();        
-        break;        
+    if (!isAnimating) {
+        switch (e.keyCode) {
+        case up:
+            distance += -100;
+            refresh();
+            e.preventDefault();                
+            break;
+        case down:
+            distance += 100;
+            refresh();
+            e.preventDefault();        
+            break;        
+        }
     }
-    stopAnimate();
 }
 
 function hideLoading() {
     document.getElementById('spinner').style.display = 'none';
-    document.getElementById('predictions').style.display = 'block';
 }
 function showLoading() {
     document.getElementById('spinner').style.display = 'block';
+    hideTextOverlay();
+}
+
+function showStart() {    
+    document.getElementById('start').style.display = 'block';
+}
+function hideStart() {
+    document.getElementById('start').style.display = 'none';
+}
+
+function showTextOverlay() {
+    document.getElementById('info').style.display = 'block';
+    document.getElementById('predictions').style.display = 'block';
+}
+
+function hideTextOverlay() {
+    document.getElementById('info').style.display = 'none';
     document.getElementById('predictions').style.display = 'none';
 }
+
 //var interval_key = setInterval(updateVis, 5000);
 //function updateVis() {
 //    let is_running = model.isRunning;

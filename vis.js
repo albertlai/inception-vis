@@ -1,5 +1,5 @@
 
-var scene, camera, renderer;
+var scene, camera, renderer, controls;
 
 var pointSize = 4.0;
 
@@ -7,7 +7,7 @@ var theta = -Math.PI/2;
 var distance;
 var center = new THREE.Vector3(0,0,0);
 var animateStart = 0;
-var animationLength = 1000;
+var animationLength = 500;
 var animationLayer = 0;
 var currentModel;
 var padding = 140;
@@ -640,10 +640,37 @@ function initVis(model) {
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth-padding, window.innerHeight);
-    
     document.getElementById('vis').appendChild(renderer.domElement );
+    renderer.domElement.onmousedown = mouseDown;
+    renderer.domElement.onmouseup = mouseUp;
+    renderer.domElement.onmouseleave = mouseLeave;
+    renderer.domElement.onmousemove = mouseMove;
 }
 
+var isMouseDown = false;
+var isAnimating = false;
+var lastX = -1;
+function mouseDown(e) {
+    isMouseDown = true;
+    lastX = e.clientX;
+}
+
+function mouseUp() {
+    isMouseDown = false;
+}
+
+function mouseLeave() {
+    isMouseDown = false;
+}
+function mouseMove(e) {
+    if (isMouseDown && !isAnimating) {
+        const x = e.clientX;
+        const delta = x - lastX;
+        lastX = x;
+        theta += delta*.01;
+        refresh();
+    }
+}
 
 function getAnimationLayer(now) {
     const elapsed = now - animateStart;
@@ -693,6 +720,10 @@ function refresh() {
     renderer.render(scene, camera);
 }
 
+function render() {
+    renderer.render(scene, camera);
+}
+
 // shim layer with setTimeout fallback
 window.requestAnimFrame = (function(){
     return  window.requestAnimationFrame       ||
@@ -705,6 +736,7 @@ window.requestAnimFrame = (function(){
 
 
 function startAnimate() {
+    isAnimating = true;
     theta = -Math.PI/2;
     animateStart = new Date().getTime();
     animate();
@@ -712,15 +744,20 @@ function startAnimate() {
 
 var requestId;
 function animate(){
-    theta += -.005;
+    theta += -.01;
     if ((new Date().getTime()-animateStart) < animationLength*(1+layers.length)) {
         updateVis(currentModel);
         requestId = requestAnimFrame(animate);
+    } else {
+        isAnimating = false;
+        showTextOverlay();
     }
     refresh();
 }
 
 function stopAnimate() {
+    isAnimating = false;
     window.cancelAnimationFrame(requestId);
     requestId = undefined;
+    showTextOverlay();
 }

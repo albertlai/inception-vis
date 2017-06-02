@@ -5,6 +5,7 @@
   <link rel="stylesheet" type="text/css" href="spinner.css">
   <script src="keras.js"></script>
   <script src="three.min.js"></script>
+  <script src="OrbitControls.js"></script>
   <script src="bundle.js"></script>
   <script src="imagenet.js"></script>
 
@@ -36,6 +37,25 @@
   </script>
 
   <style>
+    a {
+    text-decoration: none;
+    }
+    #start a {
+    color: white;
+    }
+    #start a:hover {
+    color: #cccccc;
+    }
+    #start a:visited {
+    color: white;
+    }
+    h2 {
+    margin-bottom: 2px;
+    }
+    h3 {
+    margin-top: 2px;
+    color: #cccccc;    
+    }
     body {
     font-family: 'Lato', sans-serif;
     margin: 0px 0px;
@@ -77,7 +97,13 @@
       right: 15px;
       top: 15px;
     }
-
+    #info {
+    display: none;
+    position: absolute;
+    color: #777777;
+    left: 15px;
+    top: 15px;
+    }
     .bar {
     height: 8px;
     margin-right: 0px;
@@ -99,23 +125,37 @@
     #source {
     float: left;
     }
+
+    #start {
+    position: relative;
+    color: white;
+    margin: auto auto;
+    width: 800px;
+    line-height:500px;
+    font-size: 50px;
+    text-align:center;
+    display:none;
+    }
+    #footer {
+    width: 100%;
+    text-align: center;
+    margin-top: 50px;
+    margin-bottom: 20px;
+    }    
   </style>
 </head>
 <body>
   <div id="content">
     <h2>SCANNING AN ARTIFICIAL BRAIN</h2>
+    <h3>a look inside a neural network</h3>
     <div class="text">
-      <p>As the name implies, artificial neural networks are based on a simplified model of how we think our brains work. Real brains are made out of physical, interconnected cells called neurons whereas neural networks are made out of 'artificial' neurons - mathematical representations instead of the messy stuff in your head. Artificial neurons are arranged in interconnected layers, hence the 'deep' in deep learning. </p>
+      <p>As the name implies, neural networks are based on a simplified model of the brain. Brains are made of interconnected cells called neurons whereas neural nets are composed of millions of 'artificial' neurons - mathematical representations instead of the messy stuff in your head. These artificial neurons are arranged in interconnected layers, hence the 'deep' in deep learning. </p>
 
       <img src="https://upload.wikimedia.org/wikipedia/en/d/d1/FMRIscan.jpg" style="float:left; margin-right:10px;"/>
       
-      <p>I've taken the neural net -> brain metaphor a bit further by making an 'MRI scan' for a popular image classifier network. A real MRI scan detects activity in the brain when the subject is stimulated, so you may see a different pattern of activity in the scan when the subject sees a scary spider vs a baby seal. When a neural network looks at an image, different regions of artificial neurons become 'activated'. </p>
-      
-        <p>For this visualization we feed Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a> network images from the internet.   </p>
+      <p>An MRI scan detects activity in the brain when the subject is stimulated; you may see a different pattern of activity when the subject sees a scary spider vs a baby seal. When a neural network is shown an image, different regions of artificial neurons also become 'activated.' This visualization shows those excited regions for Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a> network - kind of a fake MRI scan right in your browser! </p>
 
 <!--      <p>Image data enters the leftmost layer (you can still make out the rough shape of the original image) and as the signal passes through the network, neurons get excited and light up. The last layer the system guesses what's in the image by highlighting a square. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>-->
-
-      <p>Use the arrow keys on your keyboard to rotate / zoom in. Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a></p>
     </div>
     <div id="source">
       <p>
@@ -127,13 +167,6 @@
       <canvas id="input-canvas" width="299" height="299"></canvas>
     </div>
     <div style="clear: both;"></div>
-    <div id="container">
-      <div id="spinner">
-        <svg class="circular" viewBox="25 25 50 50">
-          <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
-        </svg>
-      </div>
-    </div>  
   </div>
   <script src="image_urls.js"></script>
   <script src="vis.js"></script>
@@ -142,13 +175,24 @@
   <div id="vis">
   </div>
   <div id="predictions"></div>
+  <div id="info">Click and drag to rotate and use the arrow keys to zoom in.</div>
+  <div id="spinner">
+    <svg class="circular" viewBox="25 25 50 50">
+      <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
+    </svg>
   </div>
+  <div id="start"><a href="#" onclick="startAnimate(); hideStart(); return false;">START ANIMATION</a></div>
+  </div>
+  <!--
   <div class="text">
     <p>The way you teach neural nets and brains end up being pretty similar.</p>
       
       <p>Let's say you're reading a picture book to a toddler. You point at the cute animals and enthusiastically call out "Lamb!" "Dog!" or "Cat!" - if the child points at a cow and says "Pig!" you'd gently correct "No, that's a cow, not a pig." After many repetitions, the young brain will magically wire its neurons up to identify farm animals. </p>
 
       <p>Analagously, researchers show a network millions of labelled photographs, compressing years of human visual experience into a few hours. If the network claims an image labelled 'bed' is an airplane, instead of wiring up physical neurons it corrects itself by nudging mathematical parameters.</p>
-
 </div>
+  -->
+  <div id="footer">
+    Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a>. Source code <a href="https://github.com/albertlai/inception-vis"> on Github</a>.
+    </div>
 </body>
