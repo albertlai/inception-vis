@@ -5583,15 +5583,23 @@ loadImageToCanvas = function(url, callback, callback_arg) {
     img.cover=true;
     img.canvas=true;
     img.crossOrigin = "Anonymous";
+    console.log("HEY WAT");
     img.onload = function() {      
         if (img.type === 'error') {
             this.imageLoadingError = true;
             this.imageLoading = false;
         } else {
             console.log("IMAGE LOADED");
+            console.log(img.width);
+            console.log(img.height);
+            let ratio = img.width / img.height;
             // load image data onto input canvas
             const ctx = document.getElementById('input-canvas').getContext('2d');
-            ctx.drawImage(img, 0, 0, 299, 299);
+            let scaledWidth = ratio >= 1 ? 299 * ratio : 299;
+            let scaledHeight = ratio <= 1 ? 299 / ratio : 299;
+            let x = scaledWidth > scaledHeight ? -(scaledWidth - scaledHeight) / 2 : 0;
+            let y = scaledWidth < scaledHeight ? -(scaledHeight - scaledWidth) / 2 : 0;
+            ctx.drawImage(img, x, 0, scaledWidth, scaledHeight);
             this.imageLoadingError = false;
             this.imageLoading = false;
             this.modelRunning = true;

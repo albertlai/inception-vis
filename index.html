@@ -5,7 +5,7 @@
   <link rel="stylesheet" type="text/css" href="spinner.css">
   <script src="keras.js"></script>
   <script src="three.min.js"></script>
-  <script src="OrbitControls.js"></script>
+
   <script src="bundle.js"></script>
   <script src="imagenet.js"></script>
 
@@ -79,15 +79,24 @@
     }
 
     #vis-container{
-    position: relative;
-    margin: 0px 70px;
-    height: 100vh;
+      position: relative;
+      margin: 0px 70px;
+      height: 50vh;
+      background-color: black;    
     }
     #vis {
-    position: absolute;
-    background-color: black;
-    width: 100%;
-    height: 100vh;
+      position: absolute;
+      background-color: black;
+      width: 100%;
+      height: 50vh;
+    }
+    svg {
+      pointer-events: none;
+    }
+    #svg {
+      position: absolute;
+      width: 100%;
+      height: 50vh;
     }
     #predictions {
       display: none;
@@ -102,8 +111,16 @@
     position: absolute;
     color: #777777;
     left: 15px;
-    top: 15px;
+    top: 5px;
     }
+    
+    #tooltip {
+    position: absolute;
+    color: white;
+    left: 15px;
+    top: 400px;
+    }
+    
     .bar {
     height: 8px;
     margin-right: 0px;
@@ -126,15 +143,22 @@
     float: left;
     }
 
+    .label {
+      color: white;
+      text-align:center;
+      margin: auto auto;
+      width: 100%;        
+    }
+    #progress {
+      font-size: 25px;
+      line-height:100px;
+      position: absolute;
+    }
     #start {
-    position: relative;
-    color: white;
-    margin: auto auto;
-    width: 800px;
-    line-height:500px;
-    font-size: 50px;
-    text-align:center;
-    display:none;
+      position: relative;        
+      font-size: 50px;    
+      line-height:300px;
+      display:none;
     }
     #footer {
     width: 100%;
@@ -149,11 +173,12 @@
     <h2>SCANNING AN ARTIFICIAL BRAIN</h2>
     <h3>a look inside a neural network</h3>
     <div class="text">
-      <p>As the name implies, neural networks are based on a simplified model of the brain. Brains are made of interconnected cells called neurons whereas neural nets are composed of millions of 'artificial' neurons - mathematical representations instead of the messy stuff in your head. These artificial neurons are arranged in interconnected layers, hence the 'deep' in deep learning. </p>
+      <p>As the name implies, neural networks are based on <a href="http://www.albertlai.me/A-Tourists-Guide-to-Deep-Learning">a simplified model of the brain,</a> which are made of interconnected cells called neurons. Neural nets are composed of millions of 'artificial' neurons - mathematical representations instead of the messy stuff in your head. When you look at something, image information passes from your retinas through layers of neurons in your brain to figure out what you're looking at. Similarly, artificial neural nets pass image data through many layers, hence the 'deep' in Deep Learning. </p>
 
       <img src="https://upload.wikimedia.org/wikipedia/en/d/d1/FMRIscan.jpg" style="float:left; margin-right:10px;"/>
       
-      <p>An MRI scan detects activity in the brain when the subject is stimulated; you may see a different pattern of activity when the subject sees a scary spider vs a baby seal. When a neural network is shown an image, different regions of artificial neurons also become 'activated.' This visualization shows those excited regions for Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">Inception V3</a> network - kind of a fake MRI scan right in your browser! </p>
+      <p>An MRI scan detects activity in the brain when the subject is stimulated, so seeing a scary spider vs a baby seal yields different activity patterns. When a neural network is shown an image, different regions of neurons become 'activated' and pass their signals onto the next layer. This visualization shows those regions for Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">InceptionV3</a> network, trained to recognize 1000 objects - an MRI scan right in your browser!</p>
+      <p> Tweet <a href="https://twitter.com/albertlai">@albertlai</a> feedback.</p>
 
 <!--      <p>Image data enters the leftmost layer (you can still make out the rough shape of the original image) and as the signal passes through the network, neurons get excited and light up. The last layer the system guesses what's in the image by highlighting a square. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>-->
     </div>
@@ -175,16 +200,19 @@
   <script src="vis.js"></script>
   <script src="index.js"></script>
   <div id="vis-container">
-  <div id="vis">
-  </div>
+    <div id="vis">
+    </div>
+  <svg id="svg"><line id="tool_line" stroke-width="1" stroke="white"/></svg>
   <div id="predictions"></div>
   <div id="info">Click and drag to rotate and use the arrow keys to zoom in.</div>
-  <div id="spinner">
+  <div id="tooltip"></div>
+  <div class="label" id="progress">Loading Neural Net</div>  
+  <div id="spinner" style="display:none">
     <svg class="circular" viewBox="25 25 50 50">
       <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
     </svg>
   </div>
-  <div id="start"><a href="#" onclick="startAnimate(); hideStart(); return false;">START ANIMATION</a></div>
+  <div class="label" id="start"><a href="#" onclick="startAnimate(); hideStart(); return false;">START ANIMATION</a></div>
   </div>
   <!--
   <div class="text">

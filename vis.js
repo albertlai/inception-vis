@@ -12,6 +12,9 @@ var animationLayer = 0;
 var currentModel;
 var padding = 140;
 
+var tooltip = document.getElementById('tooltip');
+var toolline = document.getElementById('tool_line');
+
 function adjustColor(value) {
     return (value/2+0.5);
 }
@@ -192,7 +195,7 @@ function generateGeometryForPredictions(tensor, z) {
         });
         var intensity = adjustPredictionIntensity(value, max, i, N);
         color = adjustPredictionColor(value, max, i, N);
-        sizes[i] = i >= N ? 4.0 : Math.max(4.0, 10 * Math.sqrt(tensor.get(i)));
+        sizes[i] = i >= N ? 3.0 : Math.max(3.0, 10 * Math.sqrt(tensor.get(i)));
         alphas[i] = 0;// intensity;        
         colors[i*3] = color.r;
         colors[i*3+1] = color.g;
@@ -208,9 +211,11 @@ function generateGeometryForPredictions(tensor, z) {
         fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
         transparent:    true
     });
-    var pointcloud = new THREE.Points( geometry, shaderMaterial );    
+    var pointcloud = new THREE.Points( geometry, shaderMaterial );
+    prediction_cloud = pointcloud;
     return pointcloud;
 }
+let prediction_cloud;;
 
 function updateGeometryForPredictions(geometry, tensor, alpha) {
     var N = tensor.shape[0];
@@ -220,7 +225,7 @@ function updateGeometryForPredictions(geometry, tensor, alpha) {
     for (let i=0; i<num_vertices; i++) {
         var intensity = adjustPredictionIntensity(tensor.get(i), max, i, N);
         geometry.attributes.alpha.array[i] = intensity * alpha;
-        geometry.attributes.size.array[i] = i >= N ? 4.0 : Math.max(4.0, 10 * tensor.get(i));
+        geometry.attributes.size.array[i] = i >= N ? 3.0 : Math.max(3.0, 10 * Math.sqrt(tensor.get(i)));
         let color = adjustPredictionColor(tensor.get(i), max, i, N);
         geometry.attributes.color.array[i*3] = color.r;
         geometry.attributes.color.array[i*3+1] = color.g;
@@ -252,7 +257,7 @@ function adjustPredictionIntensity(value, max, i, N) {
 function adjustPredictionColor(value, max, i, N) {
     let b = 1;
     if (i < N) {
-        b =  1 - value/max;
+        b =  1 - Math.sqrt(Math.sqrt(value))/max;
     }
     return new THREE.Color(1,1,b);
 }
@@ -569,7 +574,7 @@ function initVis(model) {
     console.log("INITIALIZING VISUALIZATION");
     vis_initialized = true;
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, (window.innerWidth-padding) / window.innerHeight, 1, 5000 );
+    camera = new THREE.PerspectiveCamera(45, (window.innerWidth-padding) / (window.innerHeight/2), 1, 5000 );
     camera.rotation.z = Math.PI/2;
 
 //    key_iter = model.modelLayersMap.keys();
@@ -636,11 +641,12 @@ function initVis(model) {
 //    scene.add(drawLines());
     // Set up the center to rotate camera around
     center.z = z/2;//  + 100;
-    distance = center.z + 500;
+    distance = center.z + 350;
 
     renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth-padding, window.innerHeight);
+    renderer.setSize( window.innerWidth-padding, window.innerHeight/2);
     document.getElementById('vis').appendChild(renderer.domElement );
+    
     renderer.domElement.onmousedown = mouseDown;
     renderer.domElement.onmouseup = mouseUp;
     renderer.domElement.onmouseleave = mouseLeave;
@@ -662,13 +668,102 @@ function mouseUp() {
 function mouseLeave() {
     isMouseDown = false;
 }
+window.addEventListener('scroll', function(e) {
+    domRect = document.getElementById('vis').getBoundingClientRect();    
+});
+
+function clearTooltip() {
+    if (tooltip && tooltip.innerHTML !== "") {
+        tooltip.innerHTML = "";
+        toolline.setAttribute("x1", "0");
+        toolline.setAttribute("y1", "0");
+        toolline.setAttribute("x2", "0");
+        toolline.setAttribute("y2", "0");
+    }            
+}
+
+var raycaster = new THREE.Raycaster();
+raycaster.params = {Points: {threshold:4}};
+var mouse = new THREE.Vector2();
+var projected = new THREE.Vector3();
+var domRect;
+var hoverIndex = -1;
 function mouseMove(e) {
-    if (isMouseDown && !isAnimating) {
-        const x = e.clientX;
-        const delta = x - lastX;
-        lastX = x;
-        theta += delta*.01;
-        refresh();
+    if (tooltip === null) {
+        tooltip = document.getElementById('tooltip');
+    }
+    if (toolline === null) {
+        toolline = document.getElementById('tool_line');
+    }
+    if (!isAnimating) {
+        if (isMouseDown) {
+            const x = e.clientX;
+            const delta = x - lastX;
+            lastX = x;
+            theta += delta*.01;
+            refresh();
+            clearTooltip();
+        } else {
+            if ((theta % (Math.PI*2) / Math.PI > .35 && theta % (Math.PI*2) / Math.PI < .65) ||
+                (theta % (Math.PI*2) / Math.PI < -1.35 && theta % (Math.PI*2) / Math.PI > -1.65)) {
+            // calculate mouse position in normalized device coordinates
+            // (-1 to +1) for both components
+            const domE = renderer.domElement;
+            mouse.x = ( (e.clientX - domRect.left) / domE.offsetWidth ) * 2 - 1;
+            mouse.y = - ( (e.clientY - domRect.top) / domE.offsetHeight ) * 2 + 1;
+            // update the picking ray with the camera and mouse position
+            raycaster.setFromCamera( mouse, camera );
+
+            // calculate objects intersecting the picking ray
+            var intersects = raycaster.intersectObjects( [prediction_cloud] );
+            if (intersects.length > 0) {
+                const obj = intersects[0];
+                if (obj.object.name === "predictions") {
+                    const index = obj.index;
+                    if (index !== hoverIndex) {                        
+                        let str = imagenetClasses[index][1].replace(/_/, ' ').toUpperCase();
+                        const prob = Math.round(model.modelLayersMap.get("predictions").result.tensor.get(index) * 10000) / 100;
+                        
+                        const p_x = obj.object.geometry.attributes.position.array[index*3];
+                        const p_y = obj.object.geometry.attributes.position.array[index*3+1];
+                        const p_z = obj.object.geometry.attributes.position.array[index*3+2];
+                        str += " " + prob + "%";
+                        tooltip.innerHTML = str;
+
+                        hoverIndex = index;
+                        projected.set(p_x, p_y, p_z);
+                        //projected.set(obj.point.x, obj.point.y, obj.point.z);
+                        projected.project(camera);
+
+                        projected.x = Math.round( (   projected.x + 1 ) * domRect.width  / 2 );
+                        let toolY = Math.round((- projected.y*2/3 + 1) * domRect.height / 2);
+                        let toollineY = toolY;
+                        projected.y = Math.round( ( - projected.y + 1 ) * domRect.height / 2 );
+                        if (projected.y > domRect.height / 2) {
+                            toollineY += 20;
+                        }
+                        let toolX = 0;
+                        let toollineX = 0;
+                        if (index < 512) {//projected.x < domRect.width / 2) {
+                            toolX = projected.x/3;
+                            toollineX = toolX + 50;
+                        } else {
+                            toolX = Math.floor(domRect.width*3/4) + (projected.x-domRect.width/2)/4;
+                            toollineX = toolX;
+                        }
+                        
+                        tooltip.style.left = toolX+"px";// (e.clientX - domRect.left) + "px";
+                        tooltip.style.top = toolY+"px";//(e.clientY - domRect.top - 50) + "px";
+                        
+                        toolline.setAttribute("x1", projected.x+"");
+                        toolline.setAttribute("y1", projected.y+"");
+                        toolline.setAttribute("x2", toollineX+"");
+                        toolline.setAttribute("y2", toollineY+"");
+                    }
+                }
+            } 
+            }
+        }
     }
 }
 
@@ -736,6 +831,7 @@ window.requestAnimFrame = (function(){
 
 
 function startAnimate() {
+    document.getElementById('vis').style.display = 'block';    
     isAnimating = true;
     theta = -Math.PI/2;
     animateStart = new Date().getTime();
