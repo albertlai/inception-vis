@@ -9,7 +9,7 @@ base_url = "Inception/";
 model_url = base_url + "inception_v3.json";
 model_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/inception_v3.json";
 weights_url = base_url + "inception_v3_weights.buf";
-//weights_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/inception_v3_weights.buf";
+weights_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/inception_v3_weights.buf";
 meta_url = base_url + "inception_v3_metadata.json";
 meta_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/inception_v3_metadata.json";
 this.model = new KerasJS.Model({
@@ -110,7 +110,8 @@ var button = document.getElementById("button");
 button.onclick = function() {
     showLoading();
     select.value = '';
-    loadImageToCanvas(text_input.value, predict, updateVis);
+    let callback = vis_initialized ? updateVis : initVis;    
+    loadImageToCanvas(text_input.value, predict, callback);
 }
 
 document.onkeydown = checkKey;

@@ -4,6 +4,8 @@ const IMAGE_URLS = [
   { name: 'Dog', value: 'http://i.imgur.com/8A3lses.jpg' },
   { name: 'Elephant', value: 'https://c1.staticflickr.com/8/7391/11330864553_dfc560ae6a.jpg' },
   { name: 'Goldfish', value: 'https://farm2.staticflickr.com/1301/1349366952_982df2276f_z_d.jpg' },
+  { name: 'Spider', value: 'https://c1.staticflickr.com/3/2813/9669144212_9b7edef254.jpg' },
+  { name: 'Otter', value: 'https://c1.staticflickr.com/9/8262/8696873843_99b3238748.jpg' },        
   { name: 'Bird', value: 'https://farm4.staticflickr.com/3075/3168662394_7d7103de7d_z_d.jpg' },
   { name: 'Bridge', value: 'https://c1.staticflickr.com/9/8232/8385101488_b101c9a9a7.jpg' },
   { name: 'Airplane', value: 'https://farm6.staticflickr.com/5590/14821526429_5c6ea60405_z_d.jpg' },
@@ -13,7 +15,7 @@ const IMAGE_URLS = [
   { name: 'Orange', value: 'https://c1.staticflickr.com/4/3228/2624653125_8b854d5e9a_b.jpg' },
   { name: 'Flower', value: 'https://farm5.staticflickr.com/4037/4682037903_88cf1cfc47_z_d.jpg' },
   { name: 'Burrito', value: 'https://c1.staticflickr.com/8/7064/6942547573_9fb88220e4.jpg' },
-  { name: 'Coffee', value: 'https://farm4.staticflickr.com/3752/9684880330_9b4698f7cb_z_d.jpg' },
+  { name: 'Coffee', value: 'https://c1.staticflickr.com/4/3173/2863665832_d9b3a29e30.jpg' },
   { name: 'Wine', value: 'https://farm4.staticflickr.com/3827/11349066413_99c32dee4a_z_d.jpg' }
 ];
 

@@ -61,7 +61,7 @@
     margin: 0px 0px;
     }
 
-    #content {
+    .content {
     margin: 80px 140px 40px 140px;
     }
     
@@ -90,6 +90,16 @@
       width: 100%;
       height: 50vh;
     }
+    .legend {
+    width: 10px;
+    height: 10px;
+    }
+    table {
+    color: #FFFFFF;
+    position: absolute;
+    font-size: 10px;
+    bottom:0;
+    }
     svg {
       pointer-events: none;
     }
@@ -102,6 +112,7 @@
       display: none;
       position: absolute;
       text-align: right;
+      font-size: 14px;
       color: #777777;
       right: 15px;
       top: 15px;
@@ -112,6 +123,7 @@
     color: #777777;
     left: 15px;
     top: 5px;
+    font-size: 14px;    
     }
     
     #tooltip {
@@ -169,17 +181,15 @@
   </style>
 </head>
 <body>
-  <div id="content">
+  <div class="content">
     <h2>SCANNING AN ARTIFICIAL BRAIN</h2>
     <h3>a look inside a neural network</h3>
     <div class="text">
-      <p>As the name implies, neural networks are based on <a href="http://www.albertlai.me/A-Tourists-Guide-to-Deep-Learning">a simplified model of the brain,</a> which are made of interconnected cells called neurons. Neural nets are composed of millions of 'artificial' neurons - mathematical representations instead of the messy stuff in your head. When you look at something, image information passes from your retinas through layers of neurons in your brain to figure out what you're looking at. Similarly, artificial neural nets pass image data through many layers, hence the 'deep' in Deep Learning. </p>
+      <p>As the name implies, neural networks are based on <a href="http://www.albertlai.me/A-Tourists-Guide-to-Deep-Learning">a simplified model of the brain.</a> Your brain is made of interconnected cells called neurons, whereas neural nets are composed of 'artificial' neurons - mathematical representations instead of the messy stuff in your head. When you look at something, image information passes from your retinas through neuron layers in your brain to figure out what you're looking at. Artificial neural nets also pass image data through many layers, hence the 'deep' in Deep Learning. </p>
 
       <img src="https://upload.wikimedia.org/wikipedia/en/d/d1/FMRIscan.jpg" style="float:left; margin-right:10px;"/>
       
-      <p>An MRI scan detects activity in the brain when the subject is stimulated, so seeing a scary spider vs a baby seal yields different activity patterns. When a neural network is shown an image, different regions of neurons become 'activated' and pass their signals onto the next layer. This visualization shows those regions for Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">InceptionV3</a> network, trained to recognize 1000 objects - an MRI scan right in your browser!</p>
-      <p> Tweet <a href="https://twitter.com/albertlai">@albertlai</a> feedback.</p>
-
+      <p>An MRI scan detects activity in the brain when the subject is stimulated, so seeing a scary spider vs a baby otter yields different activity patterns. When a neural network is shown an image, different regions of neurons become 'activated' and pass their signals onto the next layer. This visualization shows those regions for Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">InceptionV3</a> network, trained to recognize 1000 objects - an MRI scan right in your browser!</p>
 <!--      <p>Image data enters the leftmost layer (you can still make out the rough shape of the original image) and as the signal passes through the network, neurons get excited and light up. The last layer the system guesses what's in the image by highlighting a square. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>-->
     </div>
     <div id="source">
@@ -204,9 +214,25 @@
     </div>
   <svg id="svg"><line id="tool_line" stroke-width="1" stroke="white"/></svg>
   <div id="predictions"></div>
-  <div id="info">Click and drag to rotate and use the arrow keys to zoom in.</div>
+  <div id="info">
+  
+    Click and drag to rotate and use the arrow keys to zoom in.    
+    <br />
+    Hover over the final layer! 
+  </div>
   <div id="tooltip"></div>
-  <div class="label" id="progress">Loading Neural Net</div>  
+  <div class="label" id="progress">Loading Neural Net</div>
+  <table>
+    <tr> <td><div class="legend" style="background-color: #FF8800"</div> </td> <td>Highly Active</td></tr>
+    <tr> <td><div class="legend" style="background-color: #FFCC22"</div> </td> <td></td></tr>                  
+    <tr> <td><div class="legend" style="background-color: #FFFF44"</div> </td> <td></td></tr>
+    <tr> <td><div class="legend" style="background-color: #CCFFAA"</div> </td> <td></td></tr>                                                                                  
+    <tr> <td><div class="legend" style="background-color: #88FFFF"</div> </td> <td>Moderate</td></tr>
+    <tr> <td><div class="legend" style="background-color: rgba(192,255,255,1)"</div> </td> <td></td></tr>
+    <tr> <td><div class="legend" style="background-color: rgba(255,255,255,.75)"</div> </td> <td></td></tr>
+    <tr> <td><div class="legend" style="background-color: rgba(255,255,255,.25)"</div> </td> <td></td></tr>
+    <tr> <td><div class="legend" style="background-color: rgba(255,255,255,.1)"</div> </td> <td>Not Active</td></tr>                                
+  </table>
   <div id="spinner" style="display:none">
     <svg class="circular" viewBox="25 25 50 50">
       <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
@@ -223,7 +249,13 @@
       <p>Analagously, researchers show a network millions of labelled photographs, compressing years of human visual experience into a few hours. If the network claims an image labelled 'bed' is an airplane, instead of wiring up physical neurons it corrects itself by nudging mathematical parameters.</p>
 </div>
   -->
+  <div class="content">
+    <h4> What am I looking at? </h4>
+    
+    <p> Each block in the visualization represents a layer of neurons in the neural network. These layers are arranged sequentially and in the first layer resembles a vague outline of the object; this is because neurons in this layer learned to detect low level details like edges, corners, etc, and will become excited when they see these features. Interestingly, no one explicitly programmed these neurons to learn these specific features, they figured out on their own that these are important to recognize images! <p>
+    <p> Excited neurons pass their signals on to the next layer, which will then pass on its excited neurons' signals to the next until we finally reach the last layer. The final layer is composed of 1000 neurons, each representing a type of object. The most excited neuron in the last layer is the network's guess as to what is in the image.
+  </div>
   <div id="footer">
-    Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a>. Source code <a href="https://github.com/albertlai/inception-vis"> on Github</a>.
+    Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a>. Source code <a href="https://github.com/albertlai/inception-vis"> on Github</a>.Tweet <a href="https://twitter.com/albertlai">@albertlai</a> feedback!
     </div>
 </body>

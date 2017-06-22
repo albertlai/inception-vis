@@ -688,7 +688,11 @@ var mouse = new THREE.Vector2();
 var projected = new THREE.Vector3();
 var domRect;
 var hoverIndex = -1;
+var lastActiveMouse = new THREE.Vector2();
 function mouseMove(e) {
+    if (domRect.top === 0) {
+        domRect = document.getElementById('vis').getBoundingClientRect();
+    }
     if (tooltip === null) {
         tooltip = document.getElementById('tooltip');
     }
@@ -716,12 +720,18 @@ function mouseMove(e) {
 
             // calculate objects intersecting the picking ray
             var intersects = raycaster.intersectObjects( [prediction_cloud] );
-            if (intersects.length > 0) {
+            if (intersects.length <= 0) {
+                let distance = mouse.distanceTo(lastActiveMouse);
+                if (distance > .05) {
+                    clearTooltip();
+                }
+            } else {         
                 const obj = intersects[0];
                 if (obj.object.name === "predictions") {
                     const index = obj.index;
-                    if (index !== hoverIndex) {                        
-                        let str = imagenetClasses[index][1].replace(/_/, ' ').toUpperCase();
+                    if (index !== hoverIndex) {
+                        lastActiveMouse.set(mouse.x, mouse.y);
+                        let str = imagenetClasses[index][1].split('_').join(' ').toUpperCase();
                         const prob = Math.round(model.modelLayersMap.get("predictions").result.tensor.get(index) * 10000) / 100;
                         
                         const p_x = obj.object.geometry.attributes.position.array[index*3];
