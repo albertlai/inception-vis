@@ -189,7 +189,7 @@
 
       <img src="https://upload.wikimedia.org/wikipedia/en/d/d1/FMRIscan.jpg" style="float:left; margin-right:10px;"/>
       
-      <p>An MRI scan detects activity in the brain when the subject is stimulated, so seeing a scary spider vs a baby otter yields different activity patterns. When a neural network is shown an image, different regions of neurons become 'activated' and pass their signals onto the next layer. This visualization shows those regions for Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">InceptionV3</a> network, trained to recognize 1000 objects - an MRI scan right in your browser!</p>
+      <p>An MRI scan detects activity in the brain when the subject is stimulated, so seeing a scary spider vs a baby otter yields different activity patterns. When a neural network is shown an image, different regions of neurons become 'activated' and pass their signals onto the next layer. This visualization shows those regions for Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">InceptionV3</a> network, pre-trained to recognize 1000 objects - an MRI scan right in your browser!</p>
 <!--      <p>Image data enters the leftmost layer (you can still make out the rough shape of the original image) and as the signal passes through the network, neurons get excited and light up. The last layer the system guesses what's in the image by highlighting a square. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>-->
     </div>
     <div id="source">
@@ -221,7 +221,7 @@
     Hover over the final layer! 
   </div>
   <div id="tooltip"></div>
-  <div class="label" id="progress">Loading Neural Net</div>
+  <div class="label" id="progress">Downloading Neural Net</div>
   <table>
     <tr> <td><div class="legend" style="background-color: #FF8800"</div> </td> <td>Highly Active</td></tr>
     <tr> <td><div class="legend" style="background-color: #FFCC22"</div> </td> <td></td></tr>                  
@@ -238,7 +238,7 @@
       <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
     </svg>
   </div>
-  <div class="label" id="start"><a href="#" onclick="startAnimate(); hideStart(); return false;">START ANIMATION</a></div>
+  <div class="label" id="start"><a href="#" onclick="startAnimate(); hideStart(); return false;">CLICK TO START ANIMATION</a></div>
   </div>
   <!--
   <div class="text">
@@ -252,7 +252,7 @@
   <div class="content">
     <h4> What am I looking at? </h4>
     
-    <p> Each block in the visualization represents a layer of neurons in the neural network. These layers are arranged sequentially and in the first layer resembles a vague outline of the object; this is because neurons in this layer learned to detect low level details like edges, corners, etc, and will become excited when they see these features. Interestingly, no one explicitly programmed these neurons to learn these specific features, they figured out on their own that these are important to recognize images! <p>
+    <p> Each block in the visualization represents a layer of neurons in the neural network. These layers are arranged sequentially and the first layer resembles a vague outline of the object; this is because neurons in this layer learned to detect low level details like edges, corners, etc, and will become excited when they see these features. Interestingly, no one explicitly programmed these neurons to learn these specific features, they figured out on their own that these are important to recognize images! <p>
     <p> Excited neurons pass their signals on to the next layer, which will then pass on its excited neurons' signals to the next until we finally reach the last layer. The final layer is composed of 1000 neurons, each representing a type of object. The most excited neuron in the last layer is the network's guess as to what is in the image.
   </div>
   <div id="footer">

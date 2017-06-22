@@ -25,7 +25,7 @@ this.model = new KerasJS.Model({
 var interval_id = setInterval(function() {
     let progress = this.model.getLoadingProgress();
     let progressdiv = document.getElementById('progress');
-    progressdiv.innerHTML = "Loading Neural Net: " + progress + "%";    
+    progressdiv.innerHTML = "Downloading Neural Net: " + progress + "%";    
     if (progress >= 100) {
         progressdiv.innerHTML = "Select an Image Above";    
         clearInterval(interval_id);
@@ -139,7 +139,7 @@ function hideLoading() {
     document.getElementById('progress').style.display = 'none';
 }
 function showLoading() {
-    document.getElementById('progress').innerHTML = "Processing Image";        
+    document.getElementById('progress').innerHTML = "Processing Neural Net";        
     document.getElementById('spinner').style.display = 'block';
     hideTextOverlay();
 }
