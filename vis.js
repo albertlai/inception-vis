@@ -168,7 +168,7 @@ function generateGeometryForPredictions(tensor, z) {
     var geometry = new THREE.BufferGeometry();
     var N = tensor.shape[0];
     var w = Math.ceil(Math.sqrt(N));
-    var num_vertices = w*w;
+    var num_vertices = N;// w*w;
     var color = new THREE.Color(1,1,0);
     var alphas = new Float32Array(num_vertices * 1 );
     var vertices = new Float32Array(num_vertices * 3 );
@@ -220,12 +220,12 @@ let prediction_cloud;;
 function updateGeometryForPredictions(geometry, tensor, alpha) {
     var N = tensor.shape[0];
     var w = Math.ceil(Math.sqrt(N));
-    var num_vertices = w*w;
+    var num_vertices = N;
     var max = getMax(tensor, N);
     for (let i=0; i<num_vertices; i++) {
         var intensity = adjustPredictionIntensity(tensor.get(i), max, i, N);
         geometry.attributes.alpha.array[i] = intensity * alpha;
-        geometry.attributes.size.array[i] = i >= N ? 3.0 : Math.max(3.0, 10 * Math.sqrt(tensor.get(i)));
+        geometry.attributes.size.array[i] = Math.max(3.0, 10 * Math.sqrt(tensor.get(i)));
         let color = adjustPredictionColor(tensor.get(i), max, i, N);
         geometry.attributes.color.array[i*3] = color.r;
         geometry.attributes.color.array[i*3+1] = color.g;
