@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <head>
   <meta charset="utf-8">
+  <link href='http://fonts.googleapis.com/css?family=Alegreya:400italic,700italic,400,700' rel='stylesheet' type='text/css'>
+  
   <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">  
   <link rel="stylesheet" type="text/css" href="spinner.css">
+  <link rel="stylesheet" type="text/css" href="style.css">
   <script src="keras.js"></script>
   <script src="three.min.js"></script>
 
@@ -36,160 +39,19 @@
     }
   </script>
 
-  <style>
-    a {
-    text-decoration: none;
-    }
-    #start a {
-    color: white;
-    }
-    #start a:hover {
-    color: #cccccc;
-    }
-    #start a:visited {
-    color: white;
-    }
-    h2 {
-    margin-bottom: 2px;
-    }
-    h3 {
-    margin-top: 2px;
-    color: #cccccc;    
-    }
-    body {
-    font-family: 'Lato', sans-serif;
-    margin: 0px 0px;
-    }
-
-    .content {
-    margin: 80px 140px 40px 140px;
-    }
-    
-    #input-canvas {
-      background: #eeeeee;
-      float:left;
-    }
-    
-    #container {
-      float:left;
-      margin-left: 15px;
-      margin-bottom: 20px;
-      width:300px;
-      height:300px;
-    }
-
-    #vis-container{
-      position: relative;
-      margin: 0px 70px;
-      height: 50vh;
-      background-color: black;    
-    }
-    #vis {
-      position: absolute;
-      background-color: black;
-      width: 100%;
-      height: 50vh;
-    }
-    .legend {
-    width: 10px;
-    height: 10px;
-    }
-    table {
-    color: #FFFFFF;
-    position: absolute;
-    font-size: 10px;
-    bottom:0;
-    }
-    svg {
-      pointer-events: none;
-    }
-    #svg {
-      position: absolute;
-      width: 100%;
-      height: 50vh;
-    }
-    #predictions {
-      display: none;
-      position: absolute;
-      text-align: right;
-      font-size: 14px;
-      color: #777777;
-      right: 15px;
-      top: 15px;
-    }
-    #info {
-    display: none;
-    position: absolute;
-    color: #777777;
-    left: 15px;
-    top: 5px;
-    font-size: 14px;    
-    }
-    
-    #tooltip {
-    position: absolute;
-    color: white;
-    left: 15px;
-    top: 400px;
-    }
-    
-    .bar {
-    height: 8px;
-    margin-right: 0px;
-    margin-left: auto;
-    margin-top: 10px
-    margin-bottom: 10px;
-    -webkit-transition: width 0.2s ease-out;
-        transition: width 0.2s ease-out;
-    }
-
-    p {
-    max-width:800px;
-    }
-    .text {
-    float: left;
-    width: 450px;
-    padding-right: 80px;
-    }
-    #source {
-    float: left;
-    }
-
-    .label {
-      color: white;
-      text-align:center;
-      margin: auto auto;
-      width: 100%;        
-    }
-    #progress {
-      font-size: 25px;
-      line-height:100px;
-      position: absolute;
-    }
-    #start {
-      position: relative;        
-      font-size: 50px;    
-      line-height:300px;
-      display:none;
-    }
-    #footer {
-    width: 100%;
-    text-align: center;
-    margin-top: 50px;
-    margin-bottom: 20px;
-    }    
-  </style>
 </head>
 <body>
   <div class="content">
     <h2>SCANNING AN ARTIFICIAL BRAIN</h2>
     <h3>a look inside a neural network</h3>
     <div class="text">
-      <p>As the name implies, neural networks are based on <a href="http://www.albertlai.me/A-Tourists-Guide-to-Deep-Learning">a simplified model of the brain.</a> Your brain is made of interconnected cells called neurons, whereas neural nets are composed of 'artificial' neurons - mathematical representations instead of the messy stuff in your head. When you look at something, image information passes from your retinas through neuron layers in your brain to figure out what you're looking at. Artificial neural nets also pass image data through many layers, hence the 'deep' in Deep Learning. </p>
+      <p>When you look at a photo of a cat, your retinas send information through layers of neurons in your brain until you suddenly think 'it's a cat!' In artificial neural networks, image data flows through layers of artificial neurons (mathematical representations instead of the messy stuff in your head) until it finally guesses: '99% probability this is a cat.'</p>
 
       <img src="https://upload.wikimedia.org/wikipedia/en/d/d1/FMRIscan.jpg" style="float:left; margin-right:10px;"/>
+      <p>An unfortunate property of neural nets is that it's really hard to figure out why it gave you a particular answer. A neural net is essentially an enormous mathematical function with millions of parameters - assigning meaning to these parameters is a Sisyphean task. </p>
+      <p>This visualization is a peek inside a neural network by highlighting which neurons get excited when shown an image, similar to how an MRI scan shows which parts of the brain responds to certain stimuli.  </p>
       
-      <p>An MRI scan detects activity in the brain when the subject is stimulated, so seeing a scary spider vs a baby otter yields different activity patterns. When a neural network is shown an image, different regions of neurons become 'activated' and pass their signals onto the next layer. This visualization shows those regions for Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">InceptionV3</a> network, pre-trained to recognize 1000 objects - an MRI scan right in your browser!</p>
+      <p>Each dot in this visualization represents a neuron from Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">InceptionV3</a> network, pre-trained to recognize 1000 objects. Different input images will excite different regions of neurons. The neural net runs directly in your browser (and your GPU if you have one).</p>
 <!--      <p>Image data enters the leftmost layer (you can still make out the rough shape of the original image) and as the signal passes through the network, neurons get excited and light up. The last layer the system guesses what's in the image by highlighting a square. Each square represents one of a thousand categories like 'cat' or 'airplane.'</p>-->
     </div>
     <div id="source">
@@ -249,13 +111,17 @@
       <p>Analagously, researchers show a network millions of labelled photographs, compressing years of human visual experience into a few hours. If the network claims an image labelled 'bed' is an airplane, instead of wiring up physical neurons it corrects itself by nudging mathematical parameters.</p>
 </div>
   -->
-  <div class="content">
-    <h4> What am I looking at? </h4>
-    
-    <p> Each block in the visualization represents a layer of neurons in the neural network. These layers are arranged sequentially and the first layer resembles a vague outline of the object; this is because neurons in this layer learned to detect low level details like edges, corners, etc, and will become excited when they see these features. Interestingly, no one explicitly programmed these neurons to learn these specific features, they figured out on their own that these are important to recognize images! <p>
-    <p> Excited neurons pass their signals on to the next layer, which will then pass on its excited neurons' signals to the next until we finally reach the last layer. The final layer is composed of 1000 neurons, each representing a type of object. The most excited neuron in the last layer is the network's guess as to what is in the image.
+  <div class="content2" >
+    <div class="text">
+    <h4> So What am I looking at? </h4>
+    <p>A neuron receives signals from neurons in the layer before it. The strengths of these connections get 'learned' when a neural network is trained, so a neuron may learn to ignore an input from Neuron A or give extra weight to Neuron B. If the weighted sum of all inputs is big enough (imagine many rivers flowing into a reservoir until a dam is breached, see gif) the neuron gets 'activated' and sends a signal out to neurons in the next layer, continuing this cycle. If the threshold is not reached, even if it's nearly there, there is no output (this is not always true.. but valid for illustrative purposes). </p>
+    <p> Each block in this visualization represents a layer of neurons in the neural network. These layers are arranged sequentially and you can see a vague outline of the original image in the first layer; this is because neurons in earlier layers tend to detect low-level details like edges, corners, colors, etc and will become excited when they see these features.</p>
+    <p> Interestingly, no one explicitly told these neurons to look for these features; at no point did a researcher decree "the first layer of this network will learn to detect high contrast gradients and edges." This is a sharp contrast to pre-deep learning Computer Vision algorithms where artisinal hand-crafted features were the norm. The whole network figured out on their own that these are important pieces of information to recognize objects! <p>
+    <p> After the signals pass through the entire network they reach the final layer, composed of 1000 neurons with each representing a type of object. The most excited neuron in the last layer is the network's guess as to what is in the image.
+    <p> This was created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a>. Source code <a href="https://github.com/albertlai/inception-vis"> on Github</a>.Tweet <a href="https://twitter.com/albertlai">@albertlai</a> feedback!
+</p>
   </div>
-  <div id="footer">
-    Created using <a href="https://github.com/transcranial/keras-js">keras.js</a> and <a href="https://threejs.org/">three.js</a>. Source code <a href="https://github.com/albertlai/inception-vis"> on Github</a>.Tweet <a href="https://twitter.com/albertlai">@albertlai</a> feedback!
+    <img src="http://i.imgur.com/LbFin5P.gif" title="source: imgur.com" style="width:400px; float:left; margin-left:-50px; margin-top:30px;" />
     </div>
+ 
 </body>

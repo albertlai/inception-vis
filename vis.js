@@ -93,7 +93,7 @@ function generateGeometryForDense(tensor, z0, depth, color) {
     var space = 8;
     var size = 3.0;
     var top_N = [];
-    var num_top = num_vertices/20;
+    var num_top = num_vertices/200;
     for (let i=0; i<num_vertices; i++) {
         x = (i % w - w/2) * space;
         y = (Math.floor(i / w) % w -w/2) * space;
@@ -325,11 +325,13 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     var color = color_start.clone();
     //nextColor(color, colorDelta);    
     var total_count = 0;
-    var num_top = numVertices / 40;
+    var num_top = numVertices / 10000;
     if (c > 1000) {
-        num_top = numVertices / 160;
+        num_top = numVertices / 50000;
     }
-    num_top = Math.min(50, num_top);
+    console.log("AH " + num_top);    
+    num_top = Math.min(35, num_top);
+    num_top = Math.max(15, num_top);    
     var top_N = [];    
     for (let k=c-1; k>0; k--) {
         //nextColor(color, -colorDelta/k);
@@ -489,17 +491,18 @@ function drawLines() {
         color: 0xffffff,
         linewidth: 1        
     });
-    material.opacity = 0.1;
+    material.opacity = 0.2;
     material.transparent = true;
     let lines = new THREE.LineSegments(geometry, material);
     return lines;
 }
+
 function drawDenseLines() {
     let geometry = new THREE.Geometry();
     let layer = top_vertices[top_vertices.length-1];
-    for (let i = Math.floor(layer.length*3/4); i < layer.length; i++) {
+    for (let i = 0; i < layer.length; i++) {//Math.floor(layer.length*3/4)
         let obj = layer[i];
-        for (let j = Math.floor(top_dense.length*3 / 4); j < top_dense.length; j++) {
+        for (let j = 0; j < top_dense.length; j++) {
             let target = top_dense[j];
             geometry.vertices.push(obj['vertex']);
             geometry.vertices.push(target['vertex']);            
@@ -562,7 +565,7 @@ var layers = [ "averagepooling2d_1",
               "mixed0", "mixed1", "mixed2",
 //              "averagepooling2d_4", "averagepooling2d_5", "averagepooling2d_6",
               "mixed3", "mixed4", "mixed5",
-//              "averagepooling2d_7", "averagepooling2d_8", "averagepooling2d_9",
+               //              "averagepooling2d_7", "averagepooling2d_8", "averagepooling2d_9",
               "mixed6", "averagepooling2d_8", "mixed8",
               "averagepooling2d_10", "avg_pool", "predictions"];
 var windows = [2,2,2,3,2,3,3,3,3,3,3,2];
@@ -604,11 +607,9 @@ function initVis(model) {
                 newZ = 64;
             }
             
-            console.log(newZ);
             if (c > newZ) {
                 blocks = getNewZ(c, newZ);
             }
-            console.log(blocks);
             var space = key.includes("max") ? 5 : 3;
             let points = generateGeometryForTensor(tensor, z, blocks, color, space);
             if (shape.length > 2) {
@@ -796,6 +797,7 @@ function updateVis(model) {
             let child = children[i];
             let key = child.name;
             let layer = model.modelLayersMap.get(key);
+            if (layer) {
             let tensor = layer.result.tensor;
             let geometry = child.geometry;
             const delta = now - animateStart;
@@ -812,6 +814,7 @@ function updateVis(model) {
                 updateGeometryForDense(geometry, tensor, alpha);
             } else if (key.includes("prediction")) {
                 updateGeometryForPredictions(geometry, tensor, alpha);
+            }
             }
         }
     }
