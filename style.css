@@ -125,11 +125,12 @@ img {
     .text {
         font-size: 16px;        
         float: left;
-        max-width: 450px;
+        max-width: 550px;
         padding-right: 80px;
     }
     #source {
-    float: left;
+        float: left;
+        font-family: 'Lato', sans-serif;
     }
 
     .label {
