@@ -1,7 +1,7 @@
 
 var scene, camera, renderer, controls;
 
-var pointSize = 4.0;
+var pointSize = 1.5;
 
 var theta = -Math.PI/2;
 var distance;
@@ -76,15 +76,16 @@ function updateGeometryForImage(geometry, tensor) {
 
 var dense_map;
 var top_dense;
-function generateGeometryForDense(tensor, z0, depth, color) {
+function generateGeometryForDense(key, tensor, z0, depth, color) {
     var geometry = new THREE.BufferGeometry();
     dense_map = {};
     var shape = tensor.shape;
+    console.log(key + shape);
     var x,y,z = 0;
     var n = shape[0];
-    var m = shape[1];
-    var c = shape[2];
-    var num_vertices = n*m*c;
+//    var m = shape[1];
+//    var c = shape[2];
+    var num_vertices = n;//*m*c;
     var alphas = new Float32Array( num_vertices * 1 );
     var sizes = new Float32Array( num_vertices * 1 );
     var vertices = new Float32Array( num_vertices * 3 );
@@ -94,6 +95,18 @@ function generateGeometryForDense(tensor, z0, depth, color) {
     var size = 3.0;
     var top_N = [];
     var num_top = num_vertices/200;
+    let sum = 0;
+    let sum_2 = 0;
+    for (let i=0; i<num_vertices; i++) {
+        let val = tensor.get(i);
+        sum += val;
+        sum_2 += (val*val);
+    }
+    let avg = sum / num_vertices;
+    averages[key] = avg;
+    let sd =  Math.sqrt(sum_2/num_vertices- avg*avg);
+    stdd[key] = sd;
+
     for (let i=0; i<num_vertices; i++) {
         x = (i % w - w/2) * space;
         y = (Math.floor(i / w) % w -w/2) * space;
@@ -101,10 +114,11 @@ function generateGeometryForDense(tensor, z0, depth, color) {
         vertices[i*3] = x;
         vertices[i*3+1] = y;
         vertices[i*3+2] = z;
-        let intensity = tensor.get(0,0,i);
+        //        let intensity = tensor.get(0,0,i);
+        let intensity = tensor.get(i) / averages[key];
         alphas[i] = 0;//intensity*intensity;
         sizes[i] = Math.min( size * intensity, size*2);
-        color = heatMap(intensity*4);
+        color = heatMap(intensity, key);
         colors[i*3] = color.r;
         colors[i*3+1] = color.g;
         colors[i*3+2] = color.b;
@@ -142,18 +156,29 @@ function generateGeometryForDense(tensor, z0, depth, color) {
     return pointcloud;
 }
 
-function updateGeometryForDense(geometry, tensor, alpha) {
+function updateGeometryForDense(key, geometry, tensor, alpha) {
     var shape = tensor.shape;
     var n = shape[0];
-    var m = shape[1];
-    var c = shape[2];
-    var num_vertices = n*m*c;
-    var size = 3.0;
+//    var m = shape[1];
+//    var c = shape[2];
+    var num_vertices = n;//*m*c;
+    var size = 2.0;
+    let sum = 0;
+    let sum_2 = 0;
     for (let i=0; i<num_vertices; i++) {
-        let intensity = tensor.get(0,0,i);
-        geometry.attributes.alpha.array[i] = alpha * intensity*intensity;
-        geometry.attributes.size.array[i] = intensity > 1.0 ? size : size * intensity;
-        let color = heatMap(intensity*4);
+        let val = tensor.get(i);
+        sum += val;
+        sum_2 += (val*val);
+    }
+    let avg = sum / num_vertices;
+    averages[key] = avg;
+    let sd =  Math.sqrt(sum_2/num_vertices- avg*avg);
+    stdd[key] = sd;
+    for (let i=0; i<num_vertices; i++) {
+        let intensity = (tensor.get(i) - averages[key]) / stdd[key] + 1;
+        geometry.attributes.alpha.array[i] = alpha * (intensity*intensity*intensity)/8;
+        geometry.attributes.size.array[i] = adjustSize(intensity-1, 2)*size;// intensity > 3.0 ? size : size * intensity;
+        let color = heatMap(intensity);
         geometry.attributes.color.array[i*3] = color.r;
         geometry.attributes.color.array[i*3+1] = color.g;
         geometry.attributes.color.array[i*3+2] = color.b;
@@ -262,8 +287,10 @@ function adjustPredictionColor(value, max, i, N) {
     return new THREE.Color(1,1,b);
 }
 
-function adjustSize(value) {
-    let cap = 8;
+function adjustSize(value, cap) {
+    if (!cap) {
+        cap = 4;
+    }
     if (value > cap) {
         return Math.min(pointSize*2, pointSize * value / cap);
     } else {
@@ -271,9 +298,13 @@ function adjustSize(value) {
     }
 }
 
-function adjustIntensity(value) {
+function adjustIntensity(value, key) {
+    if (averages.hasOwnProperty(key)) {
+        //        value = value / (averages[key]*2);
+        value = value / (stdd[key]);
+    }  
     let cap = 4;
-    let factor = 4;
+    let factor = 5;
     let intensity = 0;
     if (value >= cap) {
         intensity = 1;
@@ -283,8 +314,16 @@ function adjustIntensity(value) {
     return intensity;
 }
 
-function heatMap(value) {
-    value = value / 4;
+function heatMap(value, key) {
+    if (averages.hasOwnProperty(key)) {
+        let scale = 4;
+        if (key == "conv10") {
+            scale = 3;
+        }
+        value = (value-averages[key]) / (stdd[key]*scale);
+    } else {
+        value = value / 2;
+    }
     if (value > 2) {
         value = 2;
     }
@@ -302,7 +341,9 @@ function heatMap(value) {
     }
 }
 var top_vertices = [];
-function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
+var averages = {};
+var stdd = {};
+function generateGeometryForTensor(key, tensor, z0, blocks, color_start, space) {
     var geometry = new THREE.BufferGeometry();
     var numPoints = 1;
     var shape = tensor.shape;
@@ -310,6 +351,7 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     var n = shape[0];
     var m = shape[1];
     var c = shape[2];
+    console.log(key + shape);
     var numVertices = n*m*c;
     var newC = c / (blocks[0] * blocks[1]);
     var x_offset = n * space/2;
@@ -329,10 +371,26 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     if (c > 1000) {
         num_top = numVertices / 50000;
     }
-    console.log("AH " + num_top);    
     num_top = Math.min(35, num_top);
     num_top = Math.max(15, num_top);    
-    var top_N = [];    
+    var top_N = [];
+    let sum = 0;
+    let sum_2 = 0;
+    for (let k=c-1; k>0; k--) {
+        //nextColor(color, -colorDelta/k);
+        for (let i=0; i<n; i++) {    
+            for (let j=0; j<m; j++) {
+                let value = tensor.get(i,j,k);                
+                sum += value;
+                sum_2 += value*value;
+            }
+        }
+    }
+    let avg = sum / numVertices;
+    averages[key] = avg;
+    let sd =  Math.sqrt(sum_2/numVertices- avg*avg);
+    stdd[key] = sd;
+    console.log("Avg " + avg + " SD " + sd);
     for (let k=c-1; k>0; k--) {
         //nextColor(color, -colorDelta/k);
         for (let i=0; i<n; i++) {
@@ -341,8 +399,8 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
                 y = (m-j) * space;
                 z = z0 + (k+Math.random()-0.5) * space;
                 let value = tensor.get(i,j,k);
-                let intensity = adjustIntensity(value);
-                color = heatMap(value);
+                let intensity = adjustIntensity(value, key);
+                color = heatMap(value, key);
                 let block = Math.floor(k / newC);
                 let newX = x;
                 let newY = y;
@@ -412,26 +470,44 @@ function generateGeometryForTensor(tensor, z0, blocks, color_start, space) {
     return pointcloud;
 }
 
-function updateGeometryForTensor(geometry, tensor, alpha) {
+function updateGeometryForTensor(key, geometry, tensor, alpha) {
     var shape = tensor.shape;
     var n = shape[0];
     var m = shape[1];
     var c = shape[2];
     var index = 0;
+    let sum = 0;
+    let sum_2 = 0;
+    for (let k=c-1; k>0; k--) {
+        //nextColor(color, -colorDelta/k);
+        for (let i=0; i<n; i++) {    
+            for (let j=0; j<m; j++) {
+                let value = tensor.get(i,j,k);                
+                sum += value;
+                sum_2 += value*value;
+            }
+        }
+    }
+    let numVertices = n*m*c;
+    let avg = sum / numVertices;
+    averages[key] = avg;
+    let sd =  Math.sqrt(sum_2/numVertices- avg*avg);
+    stdd[key] = sd;
+    
     for (let k=c-1; k>0; k--) {            
         for (let i=0; i<n; i++) {
             for (let j=0; j<m; j++) {
                 let value = tensor.get(i,j,k);
-                let intensity = adjustIntensity(value);
+                let intensity = adjustIntensity(value, key);
                 if (alpha >= 0) {
                     intensity = alpha * intensity;
                 }
-                let color = heatMap(value);
+                let color = heatMap(value, key);
                 geometry.attributes.color.array[index*3] = color.r;
                 geometry.attributes.color.array[index*3+1] = color.g;
                 geometry.attributes.color.array[index*3+2] = color.b;
                 geometry.attributes.alpha.array[index] = intensity;
-                geometry.attributes.size.array[index] = adjustSize(value);
+                geometry.attributes.size.array[index] = adjustSize((value-averages[key]) / stdd[key]);
                 index++;
             }
         }
@@ -558,7 +634,9 @@ function drawPredictionLines(weights) {
     }
     return lines;
 }
-
+var dense_layer = "global_average_pooling2d_1";
+var prediction_layer = "loss";
+/*
 //var layers = ["maxpooling2d_1", "averagepooling2d_1",
 var layers = [ "averagepooling2d_1",              
               //              "averagepooling2d_2", "averagepooling2d_3", "mixed2",
@@ -568,6 +646,14 @@ var layers = [ "averagepooling2d_1",
                //              "averagepooling2d_7", "averagepooling2d_8", "averagepooling2d_9",
               "mixed6", "averagepooling2d_8", "mixed8",
               "averagepooling2d_10", "avg_pool", "predictions"];
+*/
+
+var layers = ["pool1", "fire2/concat", "fire3/concat",
+              "fire4/concat", //"fire5/concat",
+              "fire6/concat",// "fire7/concat",
+              "fire8/concat", "fire9/concat", "conv10",
+              "global_average_pooling2d_1",
+              "loss"];
 var windows = [2,2,2,3,2,3,3,3,3,3,3,2];
 
 var colorDelta = 1.0 / (layers.length-1);
@@ -589,13 +675,23 @@ function initVis(model) {
         let layer = model.modelLayersMap.get(key);
         let tensor = layer.result.tensor;
         let shape = tensor.shape;
-        console.log(key + " " + shape);
         if (key.includes("input")) {
             let points = generateGeometryForImage(tensor, 1);
             points.name =key;
             scene.add(points);
             z = 128;
-        } else if (shape && (key.includes("mixed") || key.includes("pooling") )){
+        } else if (key.includes(dense_layer)) {
+            let depth = 8;
+            color = new THREE.Color(.5,1,.5);
+            let points = generateGeometryForDense(key, tensor, z, depth, color);
+            points.name = key;
+            scene.add(points);
+            z = z + depth * space + 128;
+        } else if (key.includes(prediction_layer)) {
+            let points = generateGeometryForPredictions(tensor, z);
+            points.name = key;
+            scene.add(points);            
+        } else if (shape && (key.includes("mixed") || key.includes("pool") || key.includes("fire") || key.includes("conv"))){
             //nextColor(color, colorDelta);
             let c = shape[2];
             var blocks = [1, 1];
@@ -611,33 +707,22 @@ function initVis(model) {
                 blocks = getNewZ(c, newZ);
             }
             var space = key.includes("max") ? 5 : 3;
-            let points = generateGeometryForTensor(tensor, z, blocks, color, space);
+            let points = generateGeometryForTensor(key, tensor, z, blocks, color, space);
             if (shape.length > 2) {
                 var newC = c / (blocks[0] * blocks[1]);
                 z = z + newC * space + 32;
             }
             points.name = key;
             scene.add(points);
-        } else if (key.includes("avg_pool")) {
-            let depth = 8;
-            color = new THREE.Color(.5,1,.5);
-            let points = generateGeometryForDense(tensor, z, depth, color);
-            points.name = key;
-            scene.add(points);
-            z = z + depth * space + 128;
-        } else if (key.includes("prediction")) {
-            let points = generateGeometryForPredictions(tensor, z);
-            points.name = key;
-            scene.add(points);            
         }
     }
     for (let i=0; i < scene.children.length; i++) {
         scene.children[i].renderOrder = scene.children.length - i;
     }
-    let prediction_lines = drawPredictionLines(model.modelLayersMap.get('predictions').weights.W.tensor);
-    for (let i=0; i < prediction_lines.length; i++) {
+//    let prediction_lines = drawPredictionLines(model.modelLayersMap.get(prediction_layer).weights.W.tensor);
+//    for (let i=0; i < prediction_lines.length; i++) {
 //        scene.add(prediction_lines[i]);
-    }
+//    }
 //    scene.add(drawDenseLines());
 //    scene.add(drawLines());
     // Set up the center to rotate camera around
@@ -728,12 +813,12 @@ function mouseMove(e) {
                 }
             } else {         
                 const obj = intersects[0];
-                if (obj.object.name === "predictions") {
+                if (obj.object.name === prediction_layer) {
                     const index = obj.index;
                     if (index !== hoverIndex) {
                         lastActiveMouse.set(mouse.x, mouse.y);
                         let str = imagenetClasses[index][1].split('_').join(' ').toUpperCase();
-                        const prob = Math.round(model.modelLayersMap.get("predictions").result.tensor.get(index) * 10000) / 100;
+                        const prob = Math.round(model.modelLayersMap.get(prediction_layer).result.tensor.get(index) * 10000) / 100;
                         
                         const p_x = obj.object.geometry.attributes.position.array[index*3];
                         const p_y = obj.object.geometry.attributes.position.array[index*3+1];
@@ -788,7 +873,6 @@ function getAnimationLayer(now) {
 }
 function updateVis(model) {
     currentModel = model;
-//    console.log("UPDATING VISUALIZATION");
     var children = scene.children;
     for (let i=0; i<children.length; i++) {
         const now = new Date().getTime();
@@ -808,12 +892,12 @@ function updateVis(model) {
             
             if (key.includes("input")) {
                 updateGeometryForImage(geometry, tensor);
-            } else if (key.includes("pooling") || key.includes("mixed")) {           
-                updateGeometryForTensor(geometry, tensor, alpha);
-            } else if (key.includes("avg_pool")) {
-                updateGeometryForDense(geometry, tensor, alpha);
-            } else if (key.includes("prediction")) {
-                updateGeometryForPredictions(geometry, tensor, alpha);
+            } else if (key.includes(dense_layer)) {
+                updateGeometryForDense(key, geometry, tensor, alpha);
+            } else if (key.includes(prediction_layer)) {
+                updateGeometryForPredictions(geometry, tensor, alpha);                
+            } else if (key.includes("pool") || key.includes("mixed") || key.includes("fire") + key.includes("conv")) {           
+                updateGeometryForTensor(key, geometry, tensor, alpha);
             }
             }
         }

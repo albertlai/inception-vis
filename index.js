@@ -5,13 +5,12 @@ var down = 40;
 
 data_url = "http://i.imgur.com/CzXTtJV.jpg";
 // in browser, URLs can be relative or absolute
-base_url = "Inception/";
-model_url = base_url + "inception_v3.json";
-model_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/inception_v3.json";
-weights_url = base_url + "inception_v3_weights.buf";
-//weights_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/inception_v3_weights.buf";
-meta_url = base_url + "inception_v3_metadata.json";
-meta_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/inception_v3_metadata.json";
+base_url = "Squeezenet/";
+base_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/squeeze/";
+model_url = base_url + "model.json";
+weights_url = base_url + "model_weights.buf";
+meta_url = base_url + "model_metadata.json";
+//meta_url = "https://s3-us-west-2.amazonaws.com/site-blob/pretrained/inception_v3_metadata.json";
 this.model = new KerasJS.Model({
     filepaths: {
         model: model_url,
@@ -19,7 +18,7 @@ this.model = new KerasJS.Model({
         metadata: meta_url
     },
     layerCallPauses: true,
-    gpu: this.hasWebgl
+    gpu: !! window.WebGLRenderingContext
 });
 
 var interval_id = setInterval(function() {
@@ -61,14 +60,13 @@ function predict(updateFn) {
     const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
     const { data, width, height } = imageData;
     
-    var inputData = loadDataToTensor(data, width, height);
+    var inputData = loadDataToSqueezeTensor(data, width, height);
 
     this.model.predict(inputData).then(outputData => {
         stopModelProgress();
-        this.output = outputData['predictions'];
+        this.output = outputData[prediction_layer];
         this.modelRunning = false;
         console.log("COMPUTE DONE");
-        
         let topK = imagenetClassesTopK(this.output);
         writePredictions(topK);
         

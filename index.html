@@ -63,7 +63,7 @@
       OR PASTE AN IMAGE URL <input id="image-input"></input> <button type="button" id="button">GO!</button><br/>
 
       <br/>
-      <canvas id="input-canvas" width="299" height="299"></canvas>
+      <canvas id="input-canvas" width="227" height="227"></canvas>
     </div>
     <div style="clear: both;"></div>
   </div>
@@ -113,7 +113,7 @@
   <div class="content2" >
     <div class="text">
       <h4> So What am I looking at?</h4>
-      <p>Here each dot in this represents a neuron from Google's <a href src="https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html">InceptionV3</a> network, pre-trained to recognize 1000 objects. Different input images will excite different regions of neurons. The neural net runs directly in your browser (and your GPU if you have one).</p>
+      <p>Here each dot in this represents a neuron from the <a href src="https://github.com/DeepScale/SqueezeNet">Squeezenet</a> network, pre-trained to recognize 1000 objects. Different input images will excite different regions of neurons. The neural net runs directly in your browser (and your GPU if you have one).</p>
       
     <p>A neuron receives signals from neurons in the layer before it. The strengths of these connections get 'learned' when a neural network is trained, so a neuron may learn to ignore an input from Neuron A or give extra weight to Neuron B. If the weighted sum of all inputs is big enough (imagine many rivers flowing into a reservoir until a dam is breached; see GIF) the neuron gets 'activated' and sends a signal out to neurons in the next layer, continuing this cycle. If the threshold is not reached, even if it's only by a smidge, there is no output (well this is not always true.. but valid for illustrative purposes). </p>
     <p> Each block in this visualization represents a layer of neurons in the neural network. These layers are arranged sequentially and you can see a vague outline of the original image in the first layer; this is because neurons in earlier layers tend to detect low-level details like edges, corners, colors, etc (known as 'features' in computer vision) and will become excited when they see these features.</p>

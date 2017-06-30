@@ -5595,8 +5595,8 @@ loadImageToCanvas = function(url, callback, callback_arg) {
             let ratio = img.width / img.height;
             // load image data onto input canvas
             const ctx = document.getElementById('input-canvas').getContext('2d');
-            let scaledWidth = ratio >= 1 ? 299 * ratio : 299;
-            let scaledHeight = ratio <= 1 ? 299 / ratio : 299;
+            let scaledWidth = ratio >= 1 ? 227 * ratio : 227;
+            let scaledHeight = ratio <= 1 ? 227 / ratio : 227;
             let x = scaledWidth > scaledHeight ? -(scaledWidth - scaledHeight) / 2 : 0;
             let y = scaledWidth < scaledHeight ? -(scaledHeight - scaledWidth) / 2 : 0;
             ctx.drawImage(img, x, 0, scaledWidth, scaledHeight);
@@ -5620,6 +5620,21 @@ loadDataToTensor = function(data, width, height) {
     ops.assign(dataProcessedTensor.pick(null, null, 0), dataTensor.pick(null, null, 0));
     ops.assign(dataProcessedTensor.pick(null, null, 1), dataTensor.pick(null, null, 1));
     ops.assign(dataProcessedTensor.pick(null, null, 2), dataTensor.pick(null, null, 2));
+    const inputData = { input_1: dataProcessedTensor.data };
+    return inputData;
+}
+
+loadDataToSqueezeTensor = function(data, width, height) {
+    // data processing
+    // see https://github.com/fchollet/keras/blob/master/keras/applications/imagenet_utils.py
+    let dataTensor = ndarray(new Float32Array(data), [width, height, 4]);
+    let dataProcessedTensor = ndarray(new Float32Array(width * height * 3), [width, height, 3]);
+    ops.subseq(dataTensor.pick(null, null, 2), 103.939);
+    ops.subseq(dataTensor.pick(null, null, 1), 116.779);
+    ops.subseq(dataTensor.pick(null, null, 0), 123.68);
+    ops.assign(dataProcessedTensor.pick(null, null, 0), dataTensor.pick(null, null, 2));
+    ops.assign(dataProcessedTensor.pick(null, null, 1), dataTensor.pick(null, null, 1));
+    ops.assign(dataProcessedTensor.pick(null, null, 2), dataTensor.pick(null, null, 0));
     const inputData = { input_1: dataProcessedTensor.data };
     return inputData;
 }
